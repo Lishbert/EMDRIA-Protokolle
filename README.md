@@ -180,4 +180,3 @@ Bei Fragen oder Problemen:
 **Version:** 1.0.0  
 **Stand:** November 2025  
 **Erstellt mit:** ❤️ und React
-
