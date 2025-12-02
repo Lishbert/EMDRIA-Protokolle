@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Card } from './ui';
-import { SaveIcon, XMarkIcon, DownloadIcon, PrinterIcon } from './icons';
+import { SaveIcon, XMarkIcon, DownloadIcon, PrinterIcon, SparklesIcon } from './icons';
 import { MetadataForm } from './MetadataForm';
 import { ChannelEditor } from './ChannelEditor';
 import type { Protocol, ProtocolType } from '../types';
 import { saveProtocol } from '../utils/storage';
 import { exportProtocolAsJSON, exportProtocolAsPDF } from '../utils/export';
 import { DEFAULT_PROTOCOL_TYPE } from '../constants';
+import { getRandomStartKnoten, getRandomChannelItem } from '../utils/testData';
 
 interface ProtocolEditorProps {
   protocol: Protocol | null;
@@ -145,6 +146,23 @@ export const ProtocolEditor: React.FC<ProtocolEditorProps> = ({ protocol, onSave
 
   const hasUnsavedChanges = saveStatus !== 'saved';
 
+  const handleFillStartKnotenTestData = () => {
+    setEditedProtocol({
+      ...editedProtocol,
+      startKnoten: getRandomStartKnoten(),
+    });
+  };
+
+  const handleFillChannelTestData = () => {
+    // Generate 3-6 channel items
+    const numItems = Math.floor(Math.random() * 4) + 3;
+    const channel = Array.from({ length: numItems }, () => getRandomChannelItem());
+    setEditedProtocol({
+      ...editedProtocol,
+      channel,
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Metadata Section */}
@@ -155,7 +173,20 @@ export const ProtocolEditor: React.FC<ProtocolEditorProps> = ({ protocol, onSave
       />
 
       {/* Startknoten Section */}
-      <Card title="Startknoten" className="mb-6">
+      <Card className="mb-6">
+        {/* Header with title and test data button */}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-on-surface-strong">Startknoten</h2>
+          <button
+            type="button"
+            onClick={handleFillStartKnotenTestData}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
+            title="Startknoten mit Testdaten füllen"
+          >
+            <SparklesIcon />
+            Testdaten einfügen
+          </button>
+        </div>
         <div>
           <label className="block text-sm font-medium text-on-surface mb-2">
             Beschreibung des Startknotens *

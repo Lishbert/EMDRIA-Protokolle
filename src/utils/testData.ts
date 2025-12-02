@@ -1,11 +1,11 @@
-import type { Protocol, ProtocolType, Speed } from '../types';
+import type { Protocol, ProtocolType, Speed, ChannelItem, Fragment, Stimulation } from '../types';
 import { PROTOCOL_TYPES } from '../constants';
 import { saveProtocol } from './storage';
 
-// Sample data for generating realistic test protocols
-const SAMPLE_CHIFFRES = ['P-001', 'P-002', 'P-003', 'K-101', 'K-102', 'M-201', 'M-202', 'T-301'];
+// Sample data for generating realistic test protocols - exported for individual field generation
+export const SAMPLE_CHIFFRES = ['P-001', 'P-002', 'P-003', 'K-101', 'K-102', 'M-201', 'M-202', 'T-301'];
 
-const SAMPLE_START_KNOTEN = [
+export const SAMPLE_START_KNOTEN = [
   'Patient berichtet von belastender Erinnerung aus der Kindheit',
   'Aktueller Auslöser: Konflikt am Arbeitsplatz',
   'Traumatisches Ereignis: Autounfall vor 2 Jahren',
@@ -16,7 +16,7 @@ const SAMPLE_START_KNOTEN = [
   'Chronische Überforderung und Erschöpfung',
 ];
 
-const SAMPLE_FRAGMENTS = [
+export const SAMPLE_FRAGMENTS = [
   'Bild wird heller, weniger bedrohlich',
   'Körperempfindung im Brustbereich nimmt ab',
   'Gefühl von Anspannung lässt nach',
@@ -39,7 +39,7 @@ const SAMPLE_FRAGMENTS = [
   'Adaptive Kognition verfestigt sich',
 ];
 
-const SAMPLE_NOTIZEN = [
+export const SAMPLE_NOTIZEN = [
   'Patient zeigt deutliche Entlastung',
   'Kurze Pause nach diesem Set',
   'VoC steigt von 3 auf 5',
@@ -48,12 +48,9 @@ const SAMPLE_NOTIZEN = [
   'Patient berichtet spontane positive Erinnerung',
   'Assoziation zu früherer erfolgreicher Bewältigung',
   'Therapeutische Intervention: Ressourcenaktivierung',
-  '',
-  '',
-  '',
 ];
 
-const SAMPLE_EINWEBUNGEN = [
+export const SAMPLE_EINWEBUNGEN = [
   'Sie haben schon viel geschafft. Was hat Ihnen dabei geholfen?',
   'Was würden Sie heute anders machen?',
   'Was sagt Ihr erwachsenes Ich dem Kind?',
@@ -66,8 +63,19 @@ const SAMPLE_EINWEBUNGEN = [
   'Was möchten Sie dem jüngeren Ich mitgeben?',
 ];
 
+// Helper functions for generating random test data - exported for individual field generation
+export const getRandomItem = <T>(array: T[]): T => {
+  return array[Math.floor(Math.random() * array.length)];
+};
+
+export const getRandomChiffre = (): string => getRandomItem(SAMPLE_CHIFFRES);
+export const getRandomStartKnoten = (): string => getRandomItem(SAMPLE_START_KNOTEN);
+export const getRandomFragmentText = (): string => getRandomItem(SAMPLE_FRAGMENTS);
+export const getRandomNotiz = (): string => getRandomItem(SAMPLE_NOTIZEN);
+export const getRandomEinwebung = (): string => getRandomItem(SAMPLE_EINWEBUNGEN);
+
 // Generate a random date within the last 6 months
-const getRandomDate = (): string => {
+export const getRandomDate = (): string => {
   const today = new Date();
   const sixMonthsAgo = new Date(today);
   sixMonthsAgo.setMonth(today.getMonth() - 6);
@@ -79,13 +87,13 @@ const getRandomDate = (): string => {
 };
 
 // Generate a random protocol number
-const getRandomProtocolNumber = (): string => {
+export const getRandomProtocolNumber = (): string => {
   const num = Math.floor(Math.random() * 999) + 1;
   return num.toString().padStart(3, '0');
 };
 
 // Generate random stimulation data
-const getRandomStimulation = () => {
+export const getRandomStimulation = (): Stimulation => {
   const speeds: Speed[] = ['langsam', 'schnell'];
   const movements = [12, 18, 24, 30, 36, 42, 48];
   
@@ -96,16 +104,37 @@ const getRandomStimulation = () => {
   };
 };
 
+// Generate random movement count
+export const getRandomBewegungen = (): number => {
+  const movements = [12, 18, 24, 30, 36, 42, 48];
+  return movements[Math.floor(Math.random() * movements.length)];
+};
+
+// Generate random speed
+export const getRandomSpeed = (): Speed => {
+  const speeds: Speed[] = ['langsam', 'schnell'];
+  return speeds[Math.floor(Math.random() * speeds.length)];
+};
+
 // Generate a random fragment
-const getRandomFragment = () => {
+export const getRandomFragment = (): Fragment => {
   const hasNotes = Math.random() > 0.6; // 40% chance of having notes
   const hasEinwebung = Math.random() > 0.5; // 50% chance of having Einwebung
   
   return {
     id: crypto.randomUUID(),
-    text: SAMPLE_FRAGMENTS[Math.floor(Math.random() * SAMPLE_FRAGMENTS.length)],
-    einwebung: hasEinwebung ? SAMPLE_EINWEBUNGEN[Math.floor(Math.random() * SAMPLE_EINWEBUNGEN.length)] : undefined,
-    notizen: hasNotes ? SAMPLE_NOTIZEN[Math.floor(Math.random() * SAMPLE_NOTIZEN.length)] : undefined,
+    text: getRandomItem(SAMPLE_FRAGMENTS),
+    einwebung: hasEinwebung ? getRandomItem(SAMPLE_EINWEBUNGEN) : undefined,
+    notizen: hasNotes ? getRandomItem(SAMPLE_NOTIZEN) : undefined,
+  };
+};
+
+// Generate a random channel item (stimulation + fragment pair)
+export const getRandomChannelItem = (): ChannelItem => {
+  return {
+    id: crypto.randomUUID(),
+    stimulation: getRandomStimulation(),
+    fragment: getRandomFragment(),
   };
 };
 
