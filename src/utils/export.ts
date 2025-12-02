@@ -129,6 +129,31 @@ export const exportProtocolAsPDF = (protocol: Protocol): void => {
         pdf.text(fragmentLines, margin + 6, yPos);
         yPos += fragmentLines.length * 5;
 
+        // Einwebung if present (indented with arrow, "Einwebung" bold, text on same line)
+        if (item.fragment.einwebung && item.fragment.einwebung.trim()) {
+          // Check if we need a new page
+          if (yPos > pageHeight - margin - 20) {
+            pdf.addPage();
+            yPos = margin;
+          }
+          
+          yPos += 2;
+          
+          // Arrow and "Einwebung:" label in bold
+          pdf.setFontSize(9);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text('-> Einwebung:', margin + 12, yPos);
+          
+          // Einwebung text in normal font, on same line with tab space
+          pdf.setFont('helvetica', 'normal');
+          const labelWidth = 32; // Width for "-> Einwebung:" + tab space
+          const einwebungLines = pdf.splitTextToSize(item.fragment.einwebung, contentWidth - 12 - labelWidth);
+          pdf.text(einwebungLines, margin + 12 + labelWidth, yPos);
+          yPos += einwebungLines.length * 4;
+          
+          pdf.setFontSize(10);
+        }
+
         // Notes if present
         if (item.fragment.notizen && item.fragment.notizen.trim()) {
           yPos += 2;

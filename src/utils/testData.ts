@@ -53,6 +53,19 @@ const SAMPLE_NOTIZEN = [
   '',
 ];
 
+const SAMPLE_EINWEBUNGEN = [
+  'Sie haben schon viel geschafft. Was hat Ihnen dabei geholfen?',
+  'Was würden Sie heute anders machen?',
+  'Was sagt Ihr erwachsenes Ich dem Kind?',
+  'Was brauchen Sie jetzt, um sich sicher zu fühlen?',
+  'Stellen Sie sich vor, Sie haben diese Situation gemeistert.',
+  'Welche Stärke hat Ihnen in der Vergangenheit geholfen?',
+  'Was würde Ihr bester Freund Ihnen jetzt sagen?',
+  'Denken Sie an einen Moment, in dem Sie sich kompetent gefühlt haben.',
+  'Wo im Körper spüren Sie Ihre Kraft?',
+  'Was möchten Sie dem jüngeren Ich mitgeben?',
+];
+
 // Generate a random date within the last 6 months
 const getRandomDate = (): string => {
   const today = new Date();
@@ -86,10 +99,12 @@ const getRandomStimulation = () => {
 // Generate a random fragment
 const getRandomFragment = () => {
   const hasNotes = Math.random() > 0.6; // 40% chance of having notes
+  const hasEinwebung = Math.random() > 0.5; // 50% chance of having Einwebung
   
   return {
     id: crypto.randomUUID(),
     text: SAMPLE_FRAGMENTS[Math.floor(Math.random() * SAMPLE_FRAGMENTS.length)],
+    einwebung: hasEinwebung ? SAMPLE_EINWEBUNGEN[Math.floor(Math.random() * SAMPLE_EINWEBUNGEN.length)] : undefined,
     notizen: hasNotes ? SAMPLE_NOTIZEN[Math.floor(Math.random() * SAMPLE_NOTIZEN.length)] : undefined,
   };
 };
