@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Input, Select } from './ui';
-import { TrashIcon, ArrowUpIcon, ArrowDownIcon, ChevronDownIcon, ChevronUpIcon } from './icons';
+import { TrashIcon, ArrowUpIcon, ArrowDownIcon, ChevronDownIcon, ChevronUpIcon, PencilIcon } from './icons';
 import type { ChannelItem } from '../types';
 import { SPEED_OPTIONS } from '../constants';
 
@@ -8,6 +8,8 @@ interface StimulationFragmentProps {
   item: ChannelItem;
   index: number;
   totalItems: number;
+  collapsed?: boolean;
+  onToggleExpand?: () => void;
   onChange: (item: ChannelItem) => void;
   onDelete: () => void;
   onMoveUp?: () => void;
@@ -18,12 +20,87 @@ export const StimulationFragment: React.FC<StimulationFragmentProps> = ({
   item,
   index,
   totalItems,
+  collapsed = false,
+  onToggleExpand,
   onChange,
   onDelete,
   onMoveUp,
   onMoveDown,
 }) => {
   const [notesExpanded, setNotesExpanded] = useState(!!item.fragment.notizen);
+
+  // Helper to truncate text
+  const truncateText = (text: string, maxLength: number = 50) => {
+    if (!text) return '';
+    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+  };
+
+  // Collapsed view
+  if (collapsed) {
+    return (
+      <div 
+        className="bg-background border-2 border-muted/30 rounded-lg p-3 hover:border-brand-primary/50 transition-colors cursor-pointer group"
+        onClick={onToggleExpand}
+      >
+        <div className="flex items-center justify-between gap-3">
+          {/* Main summary content */}
+          <div className="flex-1 min-w-0 flex items-center gap-3">
+            <span className="font-bold text-brand-secondary whitespace-nowrap">
+              Paar {index + 1}:
+            </span>
+            <span className="text-on-surface">
+              {item.stimulation.anzahlBewegungen} Bew. {item.stimulation.geschwindigkeit}
+            </span>
+            <span className="text-muted">|</span>
+            <span className="text-on-surface truncate flex-1">
+              {truncateText(item.fragment.text) || <span className="text-muted italic">Kein Fragment</span>}
+            </span>
+            {item.fragment.einwebung && (
+              <span className="bg-brand-primary/20 text-brand-primary text-xs px-2 py-0.5 rounded-full whitespace-nowrap">
+                Einwebung
+              </span>
+            )}
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+            {onMoveUp && index > 0 && (
+              <button
+                onClick={onMoveUp}
+                className="text-muted hover:text-blue-500 hover:bg-blue-500/10 rounded p-1 transition-colors"
+                title="Nach oben verschieben"
+              >
+                <ArrowUpIcon />
+              </button>
+            )}
+            {onMoveDown && index < totalItems - 1 && (
+              <button
+                onClick={onMoveDown}
+                className="text-muted hover:text-blue-500 hover:bg-blue-500/10 rounded p-1 transition-colors"
+                title="Nach unten verschieben"
+              >
+                <ArrowDownIcon />
+              </button>
+            )}
+            <button
+              onClick={onToggleExpand}
+              className="text-muted hover:text-brand-primary hover:bg-brand-primary/10 rounded p-1 transition-colors"
+              title="Bearbeiten"
+            >
+              <PencilIcon />
+            </button>
+            <button
+              onClick={onDelete}
+              className="text-muted hover:text-red-500 hover:bg-red-500/10 rounded p-1 transition-colors"
+              title="Löschen"
+            >
+              <TrashIcon />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleStimulationChange = (field: 'anzahlBewegungen' | 'geschwindigkeit', value: string | number) => {
     onChange({
@@ -45,8 +122,9 @@ export const StimulationFragment: React.FC<StimulationFragmentProps> = ({
     });
   };
 
+  // Expanded view
   return (
-    <div className="bg-background border-2 border-muted/30 rounded-lg p-4 space-y-4 hover:border-brand-primary/50 transition-colors">
+    <div className="bg-background border-2 border-brand-primary/50 rounded-lg p-4 space-y-4 transition-colors">
       {/* Header with index and controls */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-bold text-brand-secondary">
@@ -69,6 +147,15 @@ export const StimulationFragment: React.FC<StimulationFragmentProps> = ({
               title="Nach unten verschieben"
             >
               <ArrowDownIcon />
+            </button>
+          )}
+          {onToggleExpand && (
+            <button
+              onClick={onToggleExpand}
+              className="text-muted hover:text-brand-primary hover:bg-brand-primary/10 rounded p-1 transition-colors"
+              title="Einklappen"
+            >
+              <ChevronUpIcon />
             </button>
           )}
           <button

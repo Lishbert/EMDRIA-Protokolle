@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Button } from './ui';
 import { PlusIcon } from './icons';
 import { StimulationFragment } from './StimulationFragment';
@@ -11,6 +11,18 @@ interface ChannelEditorProps {
 }
 
 export const ChannelEditor: React.FC<ChannelEditorProps> = ({ channel, onChange }) => {
+  // Track which item is currently expanded (null means none, or the last one if just added)
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(
+    channel.length > 0 ? channel.length - 1 : null
+  );
+
+  // Update expandedIndex when channel length changes (e.g., when items are deleted)
+  useEffect(() => {
+    if (expandedIndex !== null && expandedIndex >= channel.length) {
+      setExpandedIndex(channel.length > 0 ? channel.length - 1 : null);
+    }
+  }, [channel.length, expandedIndex]);
+
   const addChannelItem = () => {
     const newItem: ChannelItem = {
       id: crypto.randomUUID(),
@@ -26,6 +38,12 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ channel, onChange 
       },
     };
     onChange([...channel, newItem]);
+    // Set the new item as expanded (collapse all others)
+    setExpandedIndex(channel.length);
+  };
+
+  const handleToggleExpand = (index: number) => {
+    setExpandedIndex(expandedIndex === index ? null : index);
   };
 
   const updateChannelItem = (index: number, updatedItem: ChannelItem) => {
@@ -69,6 +87,8 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({ channel, onChange 
             item={item}
             index={index}
             totalItems={channel.length}
+            collapsed={expandedIndex !== index}
+            onToggleExpand={() => handleToggleExpand(index)}
             onChange={(updatedItem) => updateChannelItem(index, updatedItem)}
             onDelete={() => deleteChannelItem(index)}
             onMoveUp={() => moveItemUp(index)}
