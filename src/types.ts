@@ -20,6 +20,7 @@ export interface Stimulation {
 export interface Fragment {
   id: string;
   text: string;  // Fragment description
+  einwebung?: string;  // Optional weaving/interweaving
   notizen?: string;
 }
 
