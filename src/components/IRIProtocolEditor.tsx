@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Card } from './ui';
-import { SaveIcon, XMarkIcon, DownloadIcon, PrinterIcon, PlusIcon, TrashIcon, PencilIcon, ChevronUpIcon } from './icons';
+import { SaveIcon, XMarkIcon, DownloadIcon, PrinterIcon, PlusIcon, TrashIcon, PencilIcon, ChevronUpIcon, SparklesIcon } from './icons';
 import { MetadataForm } from './MetadataForm';
 import type { 
   IRIProtocol, 
@@ -20,6 +20,20 @@ import {
   STIMULATION_TYP_OPTIONS,
   SET_GESCHWINDIGKEIT_OPTIONS,
 } from '../constants';
+import {
+  getRandomItem,
+  getRandomItems,
+  getRandomLOPE,
+  getRandomIRISet,
+  SAMPLE_IRI_AUSGANGSZUSTAND,
+  SAMPLE_IRI_ZIELE,
+  SAMPLE_POSITIVE_MOMENTE,
+  SAMPLE_KONTEXT_POSITIVE_MOMENTE,
+  SAMPLE_KOERPERWAHRNEHMUNG,
+  SAMPLE_ANKER,
+  SAMPLE_HAUSAUFGABEN,
+  SAMPLE_THERAPEUT_REFLEXION,
+} from '../utils/testData';
 
 interface IRIProtocolEditorProps {
   protocol: IRIProtocol | null;
@@ -162,13 +176,30 @@ const LikertScale: React.FC<LikertScaleProps> = ({
   );
 };
 
-// Section Header Component
-const SectionHeader: React.FC<{ number: number; title: string }> = ({ number, title }) => (
+// Section Header Component with optional test button
+interface SectionHeaderProps {
+  number: number;
+  title: string;
+  onFillTest?: () => void;
+}
+
+const SectionHeader: React.FC<SectionHeaderProps> = ({ number, title, onFillTest }) => (
   <div className="flex items-center gap-3 mb-4">
     <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 text-white font-bold text-sm">
       {number}
     </span>
-    <h2 className="text-lg font-bold text-on-surface-strong">{title}</h2>
+    <h2 className="text-lg font-bold text-on-surface-strong flex-1">{title}</h2>
+    {onFillTest && (
+      <button
+        type="button"
+        onClick={onFillTest}
+        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
+        title="Testdaten einfügen"
+      >
+        <SparklesIcon />
+        Testdaten einfügen
+      </button>
+    )}
   </div>
 );
 
@@ -179,6 +210,9 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
   
   // Track which stimulation set is expanded (null means none, or the last one if just added)
   const [expandedSetIndex, setExpandedSetIndex] = useState<number | null>(null);
+  
+  // Dropdown menu state for bilaterale stimulation test data
+  const [showStimulationTestMenu, setShowStimulationTestMenu] = useState(false);
 
   // Initialize or reset form when protocol changes
   useEffect(() => {
@@ -310,6 +344,139 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
     updateField('bilaterale_stimulation', 'sets', updated);
   };
 
+  // =============================================
+  // Test Data Fill Functions for each section
+  // =============================================
+
+  const fillTestIndikation = () => {
+    const indikationOptions: IndikationOption[] = ['bindungsdefizite', 'schwierigkeiten_ressourcen', 'wenig_ressourcen', 'erhoehte_anspannung'];
+    setEditedProtocol((prev) => ({
+      ...prev,
+      indikation: {
+        ...prev.indikation,
+        indikation_checklist: getRandomItems(indikationOptions, 1, 3),
+        ausgangszustand_beschreibung: getRandomItem(SAMPLE_IRI_AUSGANGSZUSTAND),
+        ziel_der_iri: getRandomItem(SAMPLE_IRI_ZIELE),
+      },
+    }));
+  };
+
+  const fillTestPositiverMoment = () => {
+    setEditedProtocol((prev) => ({
+      ...prev,
+      positiver_moment: {
+        ...prev.positiver_moment,
+        positiver_moment_beschreibung: getRandomItem(SAMPLE_POSITIVE_MOMENTE),
+        kontext_positiver_moment: getRandomItem(SAMPLE_KONTEXT_POSITIVE_MOMENTE),
+        wahrgenommene_positive_veraenderung: 'Patient zeigt entspannte Mimik, aufrechte Haltung, lebendiger Ausdruck.',
+        veraenderung_mimik: 'Lächeln, Entspannung um die Augen',
+        veraenderung_verbale_ausdrucksweise: 'Lebendiger, hoffnungsvoller Tonfall',
+        veraenderung_koerperhaltung: 'Aufrechter, offener',
+      },
+    }));
+  };
+
+  const fillTestKoerperwahrnehmung = () => {
+    const koerperlokalisationOptions: KoerperlokalisationOption[] = ['kopf', 'hals_nacken', 'brustkorb', 'bauch', 'ruecken', 'arme_haende', 'beine_fuesse', 'ganzkoerper'];
+    const qualitaetOptions: KoerperempfindungQualitaet[] = ['warm', 'weit', 'leicht', 'ruhig', 'kraftvoll', 'lebendig'];
+    setEditedProtocol((prev) => ({
+      ...prev,
+      koerperwahrnehmung: {
+        ...prev.koerperwahrnehmung,
+        koerperwahrnehmung_rohtext: getRandomItem(SAMPLE_KOERPERWAHRNEHMUNG),
+        koerperlokalisation: getRandomItems(koerperlokalisationOptions, 1, 3),
+        qualitaet_koerperempfindung: getRandomItems(qualitaetOptions, 2, 4),
+      },
+    }));
+  };
+
+  const fillTestLopeVorher = () => {
+    setEditedProtocol((prev) => ({
+      ...prev,
+      lope_vorher: getRandomLOPE(2, 5),
+    }));
+  };
+
+  const fillTestBilateraleStimulation = (count: number) => {
+    const stimulationTypen: StimulationTyp[] = ['visuell', 'taktil', 'auditiv'];
+    const newSets = Array.from({ length: count }, (_, i) => getRandomIRISet(i + 1));
+    
+    setEditedProtocol((prev) => ({
+      ...prev,
+      bilaterale_stimulation: {
+        ...prev.bilaterale_stimulation,
+        stimulation_typ: getRandomItem(stimulationTypen),
+        stimulation_bemerkungen_allgemein: 'Verlauf ohne Besonderheiten. Patient konnte gut folgen.',
+        sets: newSets,
+      },
+    }));
+    // Collapse all sets after filling
+    setExpandedSetIndex(null);
+    setShowStimulationTestMenu(false);
+  };
+
+  // Close dropdown menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showStimulationTestMenu) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.stimulation-test-dropdown')) {
+          setShowStimulationTestMenu(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showStimulationTestMenu]);
+
+  const fillTestLopeNachher = () => {
+    const lopeVorher = editedProtocol.lope_vorher ?? 4;
+    const lopeNachher = Math.min(10, lopeVorher + getRandomLOPE(2, 4));
+    setEditedProtocol((prev) => ({
+      ...prev,
+      lope_nachher: lopeNachher,
+    }));
+  };
+
+  const fillTestRessourcenEinschaetzung = () => {
+    setEditedProtocol((prev) => ({
+      ...prev,
+      ressourcen_einschaetzung: {
+        ...prev.ressourcen_einschaetzung,
+        ressource_spuerbarkeit: Math.floor(Math.random() * 2) + 4, // 4-5
+        ressource_erreichbarkeit_im_alltag: Math.floor(Math.random() * 2) + 3, // 3-4
+        anker_fuer_alltag: getRandomItem(SAMPLE_ANKER),
+        vereinbarte_hausaufgabe: getRandomItem(SAMPLE_HAUSAUFGABEN),
+        bemerkungen_risiko_stabilitaet: 'Stabil nach der Übung. Keine Anzeichen von Überforderung.',
+      },
+    }));
+  };
+
+  const fillTestGesamtkommentar = () => {
+    setEditedProtocol((prev) => ({
+      ...prev,
+      abschluss: {
+        ...prev.abschluss,
+        therapeut_reflexion: getRandomItem(SAMPLE_THERAPEUT_REFLEXION),
+        naechste_schritte_behandlung: 'Fortsetzung der Ressourcenarbeit in der nächsten Sitzung. Bei guter Stabilität ggf. Beginn der Reprozessierung.',
+      },
+    }));
+  };
+
+  const fillTestEinwilligung = () => {
+    setEditedProtocol((prev) => ({
+      ...prev,
+      abschluss: {
+        ...prev.abschluss,
+        einwilligung_dokumentation: true,
+        signatur_therapeut: `Dr. Muster, ${new Date().toLocaleDateString('de-DE')}`,
+      },
+    }));
+  };
+
   const validateProtocol = (): boolean => {
     const newErrors: { [key: string]: boolean } = {};
 
@@ -400,7 +567,7 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
 
       {/* Section 2: Indikation / Ausgangslage */}
       <Card className="mb-6">
-        <SectionHeader number={2} title="Indikation / Ausgangslage" />
+        <SectionHeader number={2} title="Indikation / Ausgangslage" onFillTest={fillTestIndikation} />
         
         <div className="space-y-6">
           <div>
@@ -445,7 +612,7 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
 
       {/* Section 3: Auslöser der Ressource / positiver Moment */}
       <Card className="mb-6">
-        <SectionHeader number={3} title="Auslöser der Ressource / Positiver Moment" />
+        <SectionHeader number={3} title="Auslöser der Ressource / Positiver Moment" onFillTest={fillTestPositiverMoment} />
         
         <div className="space-y-6">
           <div>
@@ -529,7 +696,7 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
 
       {/* Section 4: Körperwahrnehmung */}
       <Card className="mb-6">
-        <SectionHeader number={4} title="Körperwahrnehmung (Ressource spürbar machen)" />
+        <SectionHeader number={4} title="Körperwahrnehmung (Ressource spürbar machen)" onFillTest={fillTestKoerperwahrnehmung} />
         
         <div className="space-y-6">
           <div>
@@ -577,7 +744,7 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
 
       {/* Section 5: LOPE vorher */}
       <Card className="mb-6">
-        <SectionHeader number={5} title="LOPE – Level of Positive Emotion (vor Stimulation)" />
+        <SectionHeader number={5} title="LOPE – Level of Positive Emotion (vor Stimulation)" onFillTest={fillTestLopeVorher} />
         
         <Slider
           label="Wie intensiv ist diese positive Wahrnehmung jetzt?"
@@ -591,7 +758,54 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
 
       {/* Section 6: Bilaterale Stimulation */}
       <Card className="mb-6">
-        <SectionHeader number={6} title="Bilaterale Stimulation (Ablauf)" />
+        {/* Custom header with dropdown menu for test data */}
+        <div className="flex items-center gap-3 mb-4">
+          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 text-white font-bold text-sm">
+            6
+          </span>
+          <h2 className="text-lg font-bold text-on-surface-strong flex-1">Bilaterale Stimulation (Ablauf)</h2>
+          <div className="relative stimulation-test-dropdown">
+            <button
+              type="button"
+              onClick={() => setShowStimulationTestMenu(!showStimulationTestMenu)}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
+              title="Testdaten einfügen"
+            >
+              <SparklesIcon />
+              Testdaten einfügen
+              <svg className={`w-4 h-4 transition-transform ${showStimulationTestMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {showStimulationTestMenu && (
+              <div className="absolute right-0 mt-2 w-40 bg-surface border-2 border-brand-secondary/30 rounded-lg shadow-2xl z-50 animate-in slide-in-from-top-2 duration-200">
+                <div className="p-1">
+                  <button
+                    type="button"
+                    onClick={() => fillTestBilateraleStimulation(5)}
+                    className="w-full text-left px-3 py-2 rounded hover:bg-background text-on-surface text-sm transition-colors"
+                  >
+                    5 Sets erstellen
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fillTestBilateraleStimulation(10)}
+                    className="w-full text-left px-3 py-2 rounded hover:bg-background text-on-surface text-sm transition-colors"
+                  >
+                    10 Sets erstellen
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fillTestBilateraleStimulation(15)}
+                    className="w-full text-left px-3 py-2 rounded hover:bg-background text-on-surface text-sm transition-colors"
+                  >
+                    15 Sets erstellen
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
         
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -844,7 +1058,7 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
 
       {/* Section 7: LOPE Abschluss */}
       <Card className="mb-6">
-        <SectionHeader number={7} title="LOPE – Abschlussbewertung" />
+        <SectionHeader number={7} title="LOPE – Abschlussbewertung" onFillTest={fillTestLopeNachher} />
         
         <div className="space-y-4">
           <Slider
@@ -871,7 +1085,7 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
 
       {/* Section 8: Einschätzung der Ressource & Integration */}
       <Card className="mb-6">
-        <SectionHeader number={8} title="Einschätzung der Ressource & Integration" />
+        <SectionHeader number={8} title="Einschätzung der Ressource & Integration" onFillTest={fillTestRessourcenEinschaetzung} />
         
         <div className="space-y-6">
           <LikertScale
@@ -929,7 +1143,7 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
 
       {/* Section 9: Gesamtkommentar der Therapeut:in */}
       <Card className="mb-6">
-        <SectionHeader number={9} title="Gesamtkommentar der Therapeut:in" />
+        <SectionHeader number={9} title="Gesamtkommentar der Therapeut:in" onFillTest={fillTestGesamtkommentar} />
         
         <div className="space-y-6">
           <div>
@@ -960,7 +1174,7 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
 
       {/* Section 10: Einwilligung / Dokumentation */}
       <Card className="mb-6">
-        <SectionHeader number={10} title="Einwilligung / Dokumentation" />
+        <SectionHeader number={10} title="Einwilligung / Dokumentation" onFillTest={fillTestEinwilligung} />
         
         <div className="space-y-6">
           <label className="flex items-start gap-3 cursor-pointer group">
