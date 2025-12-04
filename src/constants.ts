@@ -5,7 +5,9 @@ import type {
   KoerperlokalisationOption, 
   KoerperempfindungQualitaet,
   StimulationTyp,
-  SetGeschwindigkeit 
+  SetGeschwindigkeit,
+  CIPOSStimulationMethode,
+  ReorientierungsMethode
 } from './types';
 
 // Storage keys
@@ -98,3 +100,26 @@ export const SET_GESCHWINDIGKEIT_OPTIONS: { value: SetGeschwindigkeit; label: st
   { value: 'mittel', label: 'Mittel' },
   { value: 'eher_schnell', label: 'Eher schnell' },
 ];
+
+// =============================================================
+// CIPOS Protocol Constants
+// =============================================================
+
+// CIPOS Stimulation methods
+export const CIPOS_STIMULATION_METHODE_OPTIONS: { value: CIPOSStimulationMethode; label: string }[] = [
+  { value: 'visuell', label: 'Visuell (langsame Augenbewegungen)' },
+  { value: 'taktil', label: 'Taktil (langsame Taps)' },
+  { value: 'auditiv', label: 'Auditiv (langsame Töne)' },
+  { value: 'kombination', label: 'Kombination / Sonstiges' },
+];
+
+// CIPOS Reorientierung methods
+export const CIPOS_REORIENTIERUNG_OPTIONS: { value: ReorientierungsMethode; label: string }[] = [
+  { value: 'gegenstaende_benennen', label: 'Gegenstände im Raum benennen' },
+  { value: 'rueckwaerts_rechnen', label: 'Rückwärts rechnen (1000–7–7–…)' },
+  { value: 'sensorische_uebungen', label: 'Ball zuwerfen / sensorische Übungen' },
+  { value: 'sonstiges', label: 'Sonstiges' },
+];
+
+// Default duration options for CIPOS (3-10 seconds)
+export const CIPOS_DAUER_OPTIONS = [3, 4, 5, 6, 7, 8, 9, 10];

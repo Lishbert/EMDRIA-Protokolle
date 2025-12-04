@@ -4,7 +4,8 @@ import { SaveIcon, XMarkIcon, DownloadIcon, PrinterIcon, SparklesIcon } from './
 import { MetadataForm } from './MetadataForm';
 import { ChannelEditor } from './ChannelEditor';
 import { IRIProtocolEditor } from './IRIProtocolEditor';
-import type { Protocol, StandardProtocol, IRIProtocol, ProtocolType, isIRIProtocol, isStandardProtocol } from '../types';
+import { CIPOSProtocolEditor } from './CIPOSProtocolEditor';
+import type { Protocol, StandardProtocol, IRIProtocol, CIPOSProtocol, ProtocolType, isIRIProtocol, isStandardProtocol, isCIPOSProtocol } from '../types';
 import { saveProtocol } from '../utils/storage';
 import { exportProtocolAsJSON, exportProtocolAsPDF } from '../utils/export';
 import { DEFAULT_PROTOCOL_TYPE } from '../constants';
@@ -21,12 +22,28 @@ function checkIsIRI(protocol: Protocol | Partial<Protocol> | null): boolean {
   return protocol?.protocolType === 'IRI';
 }
 
+// Check if a protocol is CIPOS type
+function checkIsCIPOS(protocol: Protocol | Partial<Protocol> | null): boolean {
+  return protocol?.protocolType === 'CIPOS';
+}
+
 export const ProtocolEditor: React.FC<ProtocolEditorProps> = ({ protocol, onSave, onCancel }) => {
   // If it's an IRI protocol, use the IRI editor
   if (protocol && checkIsIRI(protocol)) {
     return (
       <IRIProtocolEditor
         protocol={protocol as IRIProtocol}
+        onSave={onSave}
+        onCancel={onCancel}
+      />
+    );
+  }
+
+  // If it's a CIPOS protocol, use the CIPOS editor
+  if (protocol && checkIsCIPOS(protocol)) {
+    return (
+      <CIPOSProtocolEditor
+        protocol={protocol as CIPOSProtocol}
         onSave={onSave}
         onCancel={onCancel}
       />
@@ -118,6 +135,51 @@ const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ protoco
       };
       // Save the partial protocol and trigger refresh
       setEditedProtocol(iriProtocol as unknown as Partial<StandardProtocol>);
+      return;
+    }
+
+    // If switching to CIPOS, we need to redirect
+    if (metadata.protocolType === 'CIPOS' && editedProtocol.protocolType !== 'CIPOS') {
+      // Create a new CIPOS protocol with the same metadata
+      const ciposProtocol: Partial<CIPOSProtocol> = {
+        id: editedProtocol.id || crypto.randomUUID(),
+        chiffre: metadata.chiffre || editedProtocol.chiffre || '',
+        datum: metadata.datum || editedProtocol.datum || new Date().toISOString().split('T')[0],
+        protokollnummer: metadata.protokollnummer || editedProtocol.protokollnummer || '',
+        protocolType: 'CIPOS',
+        createdAt: editedProtocol.createdAt || Date.now(),
+        lastModified: Date.now(),
+        gegenwartsorientierung_vorher: {
+          prozent_gegenwartsorientierung: 50,
+          indikatoren_patient: '',
+        },
+        verstaerkung_gegenwart: {
+          stimulation_methode: 'visuell',
+          dauer_anzahl_sets: '',
+          reaktion_verbesserung: null,
+          gegenwartsorientierung_nach_stimulation: 50,
+        },
+        erster_kontakt: {
+          zielerinnerung_beschreibung: '',
+          sud_vor_kontakt: 5,
+          belastungsdauer_sekunden: 5,
+        },
+        durchgaenge: [],
+        abschlussbewertung: {
+          sud_nach_letztem_durchgang: 5,
+        },
+        nachbesprechung: {
+          nachbesprechung_durchgefuehrt: null,
+          hinweis_inneres_prozessieren: null,
+        },
+        schwierigkeiten: {
+          probleme_reorientierung: null,
+          cipos_vorzeitig_beendet: null,
+        },
+        abschluss_dokumentation: {},
+      };
+      // Save the partial protocol and trigger refresh
+      setEditedProtocol(ciposProtocol as unknown as Partial<StandardProtocol>);
       return;
     }
 
@@ -256,6 +318,17 @@ const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ protoco
     return (
       <IRIProtocolEditor
         protocol={editedProtocol as unknown as IRIProtocol}
+        onSave={onSave}
+        onCancel={onCancel}
+      />
+    );
+  }
+
+  // If the current protocol has switched to CIPOS type, render CIPOS editor
+  if (editedProtocol.protocolType === 'CIPOS') {
+    return (
+      <CIPOSProtocolEditor
+        protocol={editedProtocol as unknown as CIPOSProtocol}
         onSave={onSave}
         onCancel={onCancel}
       />
