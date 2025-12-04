@@ -3,7 +3,8 @@ import { Button, Card } from './ui';
 import { SaveIcon, XMarkIcon, DownloadIcon, PrinterIcon, SparklesIcon } from './icons';
 import { MetadataForm } from './MetadataForm';
 import { ChannelEditor } from './ChannelEditor';
-import type { Protocol, ProtocolType } from '../types';
+import { IRIProtocolEditor } from './IRIProtocolEditor';
+import type { Protocol, StandardProtocol, IRIProtocol, ProtocolType, isIRIProtocol, isStandardProtocol } from '../types';
 import { saveProtocol } from '../utils/storage';
 import { exportProtocolAsJSON, exportProtocolAsPDF } from '../utils/export';
 import { DEFAULT_PROTOCOL_TYPE } from '../constants';
@@ -15,8 +16,42 @@ interface ProtocolEditorProps {
   onCancel: () => void;
 }
 
+// Check if a protocol is IRI type
+function checkIsIRI(protocol: Protocol | Partial<Protocol> | null): boolean {
+  return protocol?.protocolType === 'IRI';
+}
+
 export const ProtocolEditor: React.FC<ProtocolEditorProps> = ({ protocol, onSave, onCancel }) => {
-  const [editedProtocol, setEditedProtocol] = useState<Partial<Protocol>>({});
+  // If it's an IRI protocol, use the IRI editor
+  if (protocol && checkIsIRI(protocol)) {
+    return (
+      <IRIProtocolEditor
+        protocol={protocol as IRIProtocol}
+        onSave={onSave}
+        onCancel={onCancel}
+      />
+    );
+  }
+
+  // For new protocols or standard protocols, use the standard editor
+  return (
+    <StandardProtocolEditor
+      protocol={protocol as StandardProtocol | null}
+      onSave={onSave}
+      onCancel={onCancel}
+    />
+  );
+};
+
+// Standard Protocol Editor (for non-IRI protocols)
+interface StandardProtocolEditorProps {
+  protocol: StandardProtocol | null;
+  onSave: () => void;
+  onCancel: () => void;
+}
+
+const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ protocol, onSave, onCancel }) => {
+  const [editedProtocol, setEditedProtocol] = useState<Partial<StandardProtocol>>({});
   const [errors, setErrors] = useState<{ [key: string]: boolean }>({});
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
@@ -42,7 +77,50 @@ export const ProtocolEditor: React.FC<ProtocolEditorProps> = ({ protocol, onSave
     setSaveStatus('idle');
   }, [protocol]);
 
-  const handleMetadataChange = (metadata: Partial<Protocol>) => {
+  // If user changes protocol type to IRI, we need to switch to IRI editor
+  // This is handled by the parent routing logic
+
+  const handleMetadataChange = (metadata: Partial<StandardProtocol>) => {
+    // If switching to IRI, we need to redirect
+    if (metadata.protocolType === 'IRI' && editedProtocol.protocolType !== 'IRI') {
+      // Create a new IRI protocol with the same metadata
+      const iriProtocol: Partial<IRIProtocol> = {
+        id: editedProtocol.id || crypto.randomUUID(),
+        chiffre: metadata.chiffre || editedProtocol.chiffre || '',
+        datum: metadata.datum || editedProtocol.datum || new Date().toISOString().split('T')[0],
+        protokollnummer: metadata.protokollnummer || editedProtocol.protokollnummer || '',
+        protocolType: 'IRI',
+        createdAt: editedProtocol.createdAt || Date.now(),
+        lastModified: Date.now(),
+        indikation: {
+          indikation_checklist: [],
+          ausgangszustand_beschreibung: '',
+          ziel_der_iri: '',
+        },
+        positiver_moment: {
+          positiver_moment_beschreibung: '',
+          kontext_positiver_moment: '',
+          wahrgenommene_positive_veraenderung: '',
+        },
+        koerperwahrnehmung: {
+          koerperwahrnehmung_rohtext: '',
+          koerperlokalisation: [],
+          qualitaet_koerperempfindung: [],
+        },
+        bilaterale_stimulation: {
+          stimulation_typ: 'visuell',
+          sets: [],
+        },
+        ressourcen_einschaetzung: {},
+        abschluss: {
+          einwilligung_dokumentation: false,
+        },
+      };
+      // Save the partial protocol and trigger refresh
+      setEditedProtocol(iriProtocol as unknown as Partial<StandardProtocol>);
+      return;
+    }
+
     setEditedProtocol({
       ...editedProtocol,
       ...metadata,
@@ -56,7 +134,7 @@ export const ProtocolEditor: React.FC<ProtocolEditorProps> = ({ protocol, onSave
     });
   };
 
-  const handleChannelChange = (channel: Protocol['channel']) => {
+  const handleChannelChange = (channel: StandardProtocol['channel']) => {
     setEditedProtocol({
       ...editedProtocol,
       channel,
@@ -90,6 +168,16 @@ export const ProtocolEditor: React.FC<ProtocolEditorProps> = ({ protocol, onSave
   };
 
   const handleSave = () => {
+    // Check if this is actually an IRI protocol that needs special handling
+    if (editedProtocol.protocolType === 'IRI') {
+      saveProtocol(editedProtocol as unknown as Protocol);
+      setSaveStatus('saved');
+      setTimeout(() => {
+        onSave();
+      }, 500);
+      return;
+    }
+
     if (!validateProtocol()) {
       setSaveStatus('error');
       return;
@@ -98,7 +186,7 @@ export const ProtocolEditor: React.FC<ProtocolEditorProps> = ({ protocol, onSave
     try {
       setSaveStatus('saving');
       
-      const protocolToSave: Protocol = {
+      const protocolToSave: StandardProtocol = {
         id: editedProtocol.id!,
         chiffre: editedProtocol.chiffre!,
         datum: editedProtocol.datum!,
@@ -125,7 +213,7 @@ export const ProtocolEditor: React.FC<ProtocolEditorProps> = ({ protocol, onSave
   const handleExportJSON = () => {
     if (!editedProtocol.id) return;
     try {
-      const protocolToExport = editedProtocol as Protocol;
+      const protocolToExport = editedProtocol as StandardProtocol;
       exportProtocolAsJSON(protocolToExport);
     } catch (error) {
       console.error('Error exporting JSON:', error);
@@ -136,7 +224,7 @@ export const ProtocolEditor: React.FC<ProtocolEditorProps> = ({ protocol, onSave
   const handleExportPDF = () => {
     if (!editedProtocol.id) return;
     try {
-      const protocolToExport = editedProtocol as Protocol;
+      const protocolToExport = editedProtocol as StandardProtocol;
       exportProtocolAsPDF(protocolToExport);
     } catch (error) {
       console.error('Error exporting PDF:', error);
@@ -162,6 +250,17 @@ export const ProtocolEditor: React.FC<ProtocolEditorProps> = ({ protocol, onSave
       channel,
     });
   };
+
+  // If the current protocol has switched to IRI type, render IRI editor
+  if (editedProtocol.protocolType === 'IRI') {
+    return (
+      <IRIProtocolEditor
+        protocol={editedProtocol as unknown as IRIProtocol}
+        onSave={onSave}
+        onCancel={onCancel}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -261,4 +360,3 @@ export const ProtocolEditor: React.FC<ProtocolEditorProps> = ({ protocol, onSave
     </div>
   );
 };
-

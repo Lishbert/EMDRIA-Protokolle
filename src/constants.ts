@@ -1,4 +1,12 @@
-import type { ProtocolType, Speed } from './types';
+import type { 
+  ProtocolType, 
+  Speed, 
+  IndikationOption, 
+  KoerperlokalisationOption, 
+  KoerperempfindungQualitaet,
+  StimulationTyp,
+  SetGeschwindigkeit 
+} from './types';
 
 // Storage keys
 export const STORAGE_KEY_PREFIX = 'emdr_protocol_';
@@ -39,3 +47,54 @@ export const DEFAULT_PROTOCOL_TYPE: ProtocolType = 'Reprozessieren';
 export const DEFAULT_SPEED: Speed = 'schnell';
 export const DEFAULT_ANZAHL_BEWEGUNGEN = 24;
 
+// =============================================================
+// IRI Protocol Constants
+// =============================================================
+
+// Section 2: Indikation options with labels
+export const INDIKATION_OPTIONS: { value: IndikationOption; label: string }[] = [
+  { value: 'bindungsdefizite', label: 'Bindungsdefizite' },
+  { value: 'schwierigkeiten_ressourcen', label: 'Schwierigkeiten, mit Ressourcen in Kontakt zu kommen' },
+  { value: 'wenig_ressourcen', label: 'Wenig Ressourcen verfügbar' },
+  { value: 'erhoehte_anspannung', label: 'Erhöhte Anspannung / Instabilität' },
+  { value: 'sonstiges', label: 'Sonstiges' },
+];
+
+// Section 4: Körperlokalisation options with labels
+export const KOERPERLOKALISATION_OPTIONS: { value: KoerperlokalisationOption; label: string }[] = [
+  { value: 'kopf', label: 'Kopf' },
+  { value: 'hals_nacken', label: 'Hals/Nacken' },
+  { value: 'brustkorb', label: 'Brustkorb' },
+  { value: 'bauch', label: 'Bauch' },
+  { value: 'ruecken', label: 'Rücken' },
+  { value: 'arme_haende', label: 'Arme/Hände' },
+  { value: 'beine_fuesse', label: 'Beine/Füße' },
+  { value: 'ganzkoerper', label: 'Ganzkörper' },
+  { value: 'sonstiges', label: 'Sonstiges' },
+];
+
+// Section 4: Körperempfindung quality options with labels
+export const KOERPEREMPFINDUNG_OPTIONS: { value: KoerperempfindungQualitaet; label: string }[] = [
+  { value: 'warm', label: 'Warm' },
+  { value: 'weit', label: 'Weit' },
+  { value: 'leicht', label: 'Leicht' },
+  { value: 'ruhig', label: 'Ruhig' },
+  { value: 'kraftvoll', label: 'Kraftvoll' },
+  { value: 'lebendig', label: 'Lebendig' },
+  { value: 'sonstiges', label: 'Sonstiges' },
+];
+
+// Section 6: Stimulation type options with labels
+export const STIMULATION_TYP_OPTIONS: { value: StimulationTyp; label: string }[] = [
+  { value: 'visuell', label: 'Visuell (Augen folgen Fingerbewegung)' },
+  { value: 'taktil', label: 'Taktil (Taps)' },
+  { value: 'auditiv', label: 'Auditiv (Töne)' },
+  { value: 'kombination', label: 'Kombination / Sonstiges' },
+];
+
+// Section 6: Set geschwindigkeit options with labels
+export const SET_GESCHWINDIGKEIT_OPTIONS: { value: SetGeschwindigkeit; label: string }[] = [
+  { value: 'langsam', label: 'Langsam' },
+  { value: 'mittel', label: 'Mittel' },
+  { value: 'eher_schnell', label: 'Eher schnell' },
+];

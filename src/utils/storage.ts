@@ -1,4 +1,4 @@
-import type { Protocol, ProtocolListItem } from '../types';
+import type { Protocol, ProtocolListItem, ProtocolMetadata } from '../types';
 import { STORAGE_KEY_PREFIX, PROTOCOLS_LIST_KEY } from '../constants';
 
 // Save a protocol to localStorage

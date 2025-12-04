@@ -9,9 +9,10 @@ interface MetadataFormProps {
   metadata: Partial<ProtocolMetadata>;
   onChange: (metadata: Partial<ProtocolMetadata>) => void;
   errors?: { [key: string]: boolean };
+  lockProtocolType?: boolean;
 }
 
-export const MetadataForm: React.FC<MetadataFormProps> = ({ metadata, onChange, errors = {} }) => {
+export const MetadataForm: React.FC<MetadataFormProps> = ({ metadata, onChange, errors = {}, lockProtocolType = false }) => {
   const handleChange = (field: keyof ProtocolMetadata, value: string) => {
     onChange({
       ...metadata,
@@ -25,7 +26,7 @@ export const MetadataForm: React.FC<MetadataFormProps> = ({ metadata, onChange, 
       chiffre: getRandomChiffre(),
       datum: getRandomDate(),
       protokollnummer: getRandomProtocolNumber(),
-      protocolType: getRandomItem(PROTOCOL_TYPES),
+      ...(lockProtocolType ? {} : { protocolType: getRandomItem(PROTOCOL_TYPES) }),
     });
   };
 
@@ -79,6 +80,7 @@ export const MetadataForm: React.FC<MetadataFormProps> = ({ metadata, onChange, 
           onChange={(e) => handleChange('protocolType', e.target.value as ProtocolType)}
           error={errors.protocolType}
           required
+          disabled={lockProtocolType}
         >
           <option value="">-- Bitte wählen --</option>
           {PROTOCOL_TYPES.map((type) => (

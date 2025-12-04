@@ -1,4 +1,19 @@
-import type { Protocol, ProtocolType, Speed, ChannelItem, Fragment, Stimulation } from '../types';
+import type { 
+  Protocol, 
+  StandardProtocol, 
+  IRIProtocol,
+  ProtocolType, 
+  Speed, 
+  ChannelItem, 
+  Fragment, 
+  Stimulation,
+  IndikationOption,
+  KoerperlokalisationOption,
+  KoerperempfindungQualitaet,
+  StimulationTyp,
+  SetGeschwindigkeit,
+  IRIStimulationSet,
+} from '../types';
 import { PROTOCOL_TYPES } from '../constants';
 import { saveProtocol } from './storage';
 
@@ -63,9 +78,82 @@ export const SAMPLE_EINWEBUNGEN = [
   'Was möchten Sie dem jüngeren Ich mitgeben?',
 ];
 
+// IRI-specific sample data
+export const SAMPLE_IRI_AUSGANGSZUSTAND = [
+  'Patient zeigt Schwierigkeiten, positive Erfahrungen zu aktivieren. Hohe Grundanspannung, wenig Zugang zu inneren Ressourcen.',
+  'Nach mehreren belastenden Sitzungen benötigt der Patient Stabilisierung. Ressourcenarbeit zur Stärkung vor weiterer Reprozessierung.',
+  'Patient berichtet von Erschöpfung und Hoffnungslosigkeit. Wenig positiver Selbstbezug erkennbar.',
+  'Bindungsunsicherheit zeigt sich in der therapeutischen Beziehung. Aufbau von Sicherheit und positiver Erfahrung notwendig.',
+];
+
+export const SAMPLE_IRI_ZIELE = [
+  'Stärkung des positiven Selbstbildes und der Selbstwirksamkeit.',
+  'Integration einer positiven Bindungserfahrung zur Stabilisierung.',
+  'Aufbau von Ressourcen für bevorstehende belastende Arbeit.',
+  'Verankerung eines sicheren inneren Ortes als Stabilisierungstechnik.',
+];
+
+export const SAMPLE_POSITIVE_MOMENTE = [
+  'Patient erinnert sich an einen Spaziergang am Meer mit der Großmutter. Gefühl von Geborgenheit und Ruhe.',
+  'Erinnerung an den erfolgreichen Abschluss der Ausbildung. Stolz und Selbstwirksamkeit.',
+  'Moment der Verbundenheit mit dem eigenen Kind. Tiefe Liebe und Zugehörigkeit.',
+  'Wanderung in den Bergen mit Freunden. Gefühl von Freiheit und Lebendigkeit.',
+];
+
+export const SAMPLE_KONTEXT_POSITIVE_MOMENTE = [
+  'Im Gespräch über Kindheitserinnerungen',
+  'Bei der Exploration von Stärken und Ressourcen',
+  'Beim Thema Beziehungen und Unterstützung',
+  'Während der Stabilisierungsübung',
+];
+
+export const SAMPLE_KOERPERWAHRNEHMUNG = [
+  'Wärme in der Brust, die sich ausbreitet. Leichte, offene Atmung.',
+  'Weites Gefühl im ganzen Körper. Schultern entspannen sich.',
+  'Kribbeln in den Händen. Gefühl von Energie und Lebendigkeit.',
+  'Ruhe im Bauch. Fester Stand auf dem Boden.',
+];
+
+export const SAMPLE_INSTRUKTIONEN = [
+  'Denken Sie an diesen positiven Moment und achten Sie auf das angenehme Körpergefühl. Folgen Sie dann mit den Augen meinen Fingern.',
+  'Bleiben Sie bei diesem warmen Gefühl in der Brust und folgen Sie meiner Handbewegung.',
+  'Halten Sie das Bild und das gute Gefühl und lassen Sie sich von der Stimulation begleiten.',
+];
+
+export const SAMPLE_WAHRNEHMUNG_NACH_SET = [
+  'Das Gefühl wird stärker und breitet sich aus.',
+  'Es fühlt sich klarer und stabiler an.',
+  'Die Wärme ist jetzt im ganzen Oberkörper spürbar.',
+  'Das Bild ist lebendiger geworden.',
+];
+
+export const SAMPLE_ANKER = [
+  'Hand aufs Herz legen und an das warme Gefühl denken',
+  'Drei tiefe Atemzüge und das Bild visualisieren',
+  'Schlüsselwort "Geborgenheit" innerlich sagen',
+];
+
+export const SAMPLE_HAUSAUFGABEN = [
+  'Täglich morgens 2 Minuten die Ressource aktivieren und das Körpergefühl wahrnehmen.',
+  'Bei Stress kurz innehalten und den Anker nutzen.',
+  'Tagebuch führen über Momente, in denen die Ressource zugänglich war.',
+];
+
+export const SAMPLE_THERAPEUT_REFLEXION = [
+  'Gelungene Ressourceninstallation. Patient zeigt deutlich verbesserten Zugang zu positiven Körperempfindungen.',
+  'Integration verlief gut, LOPE-Anstieg deutlich. Basis für weitere Stabilisierungsarbeit geschaffen.',
+  'Patient konnte die Ressource gut aktivieren und verankern. Gute Voraussetzungen für nächste Sitzung.',
+];
+
 // Helper functions for generating random test data - exported for individual field generation
 export const getRandomItem = <T>(array: T[]): T => {
   return array[Math.floor(Math.random() * array.length)];
+};
+
+export const getRandomItems = <T>(array: T[], min: number = 1, max: number = 3): T[] => {
+  const count = Math.floor(Math.random() * (max - min + 1)) + min;
+  const shuffled = [...array].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(count, array.length));
 };
 
 export const getRandomChiffre = (): string => getRandomItem(SAMPLE_CHIFFRES);
@@ -138,7 +226,28 @@ export const getRandomChannelItem = (): ChannelItem => {
   };
 };
 
-// Generate a single test protocol
+// Generate a random LOPE value (0-10)
+export const getRandomLOPE = (min: number = 0, max: number = 10): number => {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+};
+
+// Generate a random IRI stimulation set
+export const getRandomIRISet = (setNummer: number): IRIStimulationSet => {
+  const geschwindigkeiten: SetGeschwindigkeit[] = ['langsam', 'mittel', 'eher_schnell'];
+  
+  return {
+    id: crypto.randomUUID(),
+    set_nummer: setNummer,
+    set_dauer: `${Math.floor(Math.random() * 30) + 15} Sekunden`,
+    set_geschwindigkeit: getRandomItem(geschwindigkeiten),
+    set_anzahl_durchgaenge: Math.floor(Math.random() * 3) + 1,
+    instruktion_text: getRandomItem(SAMPLE_INSTRUKTIONEN),
+    subjektive_wahrnehmung_nach_set: getRandomItem(SAMPLE_WAHRNEHMUNG_NACH_SET),
+    lope_nach_set: getRandomLOPE(4, 9),
+  };
+};
+
+// Generate a single test protocol (Standard or IRI based on type)
 export const generateTestProtocol = (
   protocolType?: ProtocolType,
   chiffre?: string
@@ -148,6 +257,12 @@ export const generateTestProtocol = (
   const date = getRandomDate();
   const now = Date.now();
   
+  // If IRI, generate IRI protocol
+  if (type === 'IRI') {
+    return generateIRITestProtocol(cipher, date, now);
+  }
+  
+  // Otherwise generate standard protocol
   // Generate 3-8 channel items
   const numItems = Math.floor(Math.random() * 6) + 3;
   const channel = Array.from({ length: numItems }, () => ({
@@ -156,7 +271,7 @@ export const generateTestProtocol = (
     fragment: getRandomFragment(),
   }));
 
-  const protocol: Protocol = {
+  const protocol: StandardProtocol = {
     id: crypto.randomUUID(),
     chiffre: cipher,
     datum: date,
@@ -168,6 +283,87 @@ export const generateTestProtocol = (
     lastModified: now,
   };
 
+  return protocol;
+};
+
+// Generate an IRI test protocol
+export const generateIRITestProtocol = (
+  chiffre?: string,
+  datum?: string,
+  timestamp?: number
+): IRIProtocol => {
+  const cipher = chiffre || getRandomItem(SAMPLE_CHIFFRES);
+  const date = datum || getRandomDate();
+  const now = timestamp || Date.now();
+  
+  const indikationOptions: IndikationOption[] = ['bindungsdefizite', 'schwierigkeiten_ressourcen', 'wenig_ressourcen', 'erhoehte_anspannung'];
+  const koerperlokalisationOptions: KoerperlokalisationOption[] = ['kopf', 'hals_nacken', 'brustkorb', 'bauch', 'ruecken', 'arme_haende', 'beine_fuesse', 'ganzkoerper'];
+  const qualitaetOptions: KoerperempfindungQualitaet[] = ['warm', 'weit', 'leicht', 'ruhig', 'kraftvoll', 'lebendig'];
+  const stimulationTypen: StimulationTyp[] = ['visuell', 'taktil', 'auditiv'];
+  
+  const lopeVorher = getRandomLOPE(2, 5);
+  const lopeNachher = Math.min(10, lopeVorher + getRandomLOPE(2, 4));
+  
+  // Generate 2-4 stimulation sets
+  const numSets = Math.floor(Math.random() * 3) + 2;
+  const sets = Array.from({ length: numSets }, (_, i) => getRandomIRISet(i + 1));
+  
+  const protocol: IRIProtocol = {
+    id: crypto.randomUUID(),
+    chiffre: cipher,
+    datum: date,
+    protokollnummer: getRandomProtocolNumber(),
+    protocolType: 'IRI',
+    createdAt: now,
+    lastModified: now,
+    
+    indikation: {
+      indikation_checklist: getRandomItems(indikationOptions, 1, 3),
+      ausgangszustand_beschreibung: getRandomItem(SAMPLE_IRI_AUSGANGSZUSTAND),
+      ziel_der_iri: getRandomItem(SAMPLE_IRI_ZIELE),
+    },
+    
+    positiver_moment: {
+      positiver_moment_beschreibung: getRandomItem(SAMPLE_POSITIVE_MOMENTE),
+      kontext_positiver_moment: getRandomItem(SAMPLE_KONTEXT_POSITIVE_MOMENTE),
+      wahrgenommene_positive_veraenderung: 'Patient zeigt entspannte Mimik, aufrechte Haltung, lebendiger Ausdruck.',
+      veraenderung_mimik: 'Lächeln, Entspannung um die Augen',
+      veraenderung_verbale_ausdrucksweise: 'Lebendiger, hoffnungsvoller Tonfall',
+      veraenderung_koerperhaltung: 'Aufrechter, offener',
+    },
+    
+    koerperwahrnehmung: {
+      koerperwahrnehmung_rohtext: getRandomItem(SAMPLE_KOERPERWAHRNEHMUNG),
+      koerperlokalisation: getRandomItems(koerperlokalisationOptions, 1, 3),
+      qualitaet_koerperempfindung: getRandomItems(qualitaetOptions, 2, 4),
+    },
+    
+    lope_vorher: lopeVorher,
+    
+    bilaterale_stimulation: {
+      stimulation_typ: getRandomItem(stimulationTypen),
+      stimulation_bemerkungen_allgemein: 'Verlauf ohne Besonderheiten. Patient konnte gut folgen.',
+      sets,
+    },
+    
+    lope_nachher: lopeNachher,
+    
+    ressourcen_einschaetzung: {
+      ressource_spuerbarkeit: Math.floor(Math.random() * 2) + 4, // 4-5
+      ressource_erreichbarkeit_im_alltag: Math.floor(Math.random() * 2) + 3, // 3-4
+      anker_fuer_alltag: getRandomItem(SAMPLE_ANKER),
+      vereinbarte_hausaufgabe: getRandomItem(SAMPLE_HAUSAUFGABEN),
+      bemerkungen_risiko_stabilitaet: 'Stabil nach der Übung. Keine Anzeichen von Überforderung.',
+    },
+    
+    abschluss: {
+      therapeut_reflexion: getRandomItem(SAMPLE_THERAPEUT_REFLEXION),
+      naechste_schritte_behandlung: 'Fortsetzung der Ressourcenarbeit in der nächsten Sitzung. Bei guter Stabilität ggf. Beginn der Reprozessierung.',
+      einwilligung_dokumentation: true,
+      signatur_therapeut: `Dr. Muster, ${new Date(now).toLocaleDateString('de-DE')}`,
+    },
+  };
+  
   return protocol;
 };
 
@@ -196,4 +392,3 @@ export const generateTestProtocolsAllTypes = (): Protocol[] => {
   
   return protocols;
 };
-
