@@ -261,9 +261,7 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
       },
       lope_nachher: undefined,
       ressourcen_einschaetzung: {},
-      abschluss: {
-        einwilligung_dokumentation: false,
-      },
+      abschluss: {},
     };
   }
 
@@ -462,17 +460,6 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
         ...prev.abschluss,
         therapeut_reflexion: getRandomItem(SAMPLE_THERAPEUT_REFLEXION),
         naechste_schritte_behandlung: 'Fortsetzung der Ressourcenarbeit in der nächsten Sitzung. Bei guter Stabilität ggf. Beginn der Reprozessierung.',
-      },
-    }));
-  };
-
-  const fillTestEinwilligung = () => {
-    setEditedProtocol((prev) => ({
-      ...prev,
-      abschluss: {
-        ...prev.abschluss,
-        einwilligung_dokumentation: true,
-        signatur_therapeut: `Dr. Muster, ${new Date().toLocaleDateString('de-DE')}`,
       },
     }));
   };
@@ -1167,38 +1154,6 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
               onChange={(e) => updateField('abschluss', 'naechste_schritte_behandlung', e.target.value)}
               className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none resize-y min-h-[100px]"
               placeholder="Planung, ob/wann weitere IRI, Übergang zu anderen EMDR-Phasen etc."
-            />
-          </div>
-        </div>
-      </Card>
-
-      {/* Section 10: Einwilligung / Dokumentation */}
-      <Card className="mb-6">
-        <SectionHeader number={10} title="Einwilligung / Dokumentation" onFillTest={fillTestEinwilligung} />
-        
-        <div className="space-y-6">
-          <label className="flex items-start gap-3 cursor-pointer group">
-            <input
-              type="checkbox"
-              checked={editedProtocol.abschluss?.einwilligung_dokumentation || false}
-              onChange={(e) => updateField('abschluss', 'einwilligung_dokumentation', e.target.checked)}
-              className="mt-1 w-5 h-5 rounded border-muted bg-background text-brand-primary focus:ring-brand-primary focus:ring-offset-0"
-            />
-            <span className="text-on-surface group-hover:text-on-surface-strong transition-colors">
-              Ich bestätige, dass die Patient:in über die Methode informiert wurde und einverstanden war.
-            </span>
-          </label>
-
-          <div>
-            <label className="block text-sm font-medium text-on-surface mb-2">
-              Signatur Therapeut:in (Name + Datum)
-            </label>
-            <input
-              type="text"
-              value={editedProtocol.abschluss?.signatur_therapeut || ''}
-              onChange={(e) => updateField('abschluss', 'signatur_therapeut', e.target.value)}
-              className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
-              placeholder="Name, Datum"
             />
           </div>
         </div>
