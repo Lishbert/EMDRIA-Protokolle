@@ -397,6 +397,71 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
     });
   };
 
+  // Get human-readable list of missing fields
+  const getMissingFields = (): string[] => {
+    const missing: string[] = [];
+
+    // Metadata
+    if (!editedProtocol.chiffre?.trim()) missing.push('Patient:innen-Chiffre');
+    if (!editedProtocol.datum) missing.push('Datum');
+    if (!editedProtocol.protokollnummer?.trim()) missing.push('Protokollnummer');
+
+    // Section 2: Gegenwartsorientierung vorher
+    if (!editedProtocol.gegenwartsorientierung_vorher?.indikatoren_patient?.trim()) {
+      missing.push('Indikatoren der Patient:in (Sektion 2)');
+    }
+
+    // Section 3: Verstärkung der sicheren Gegenwart
+    if (!editedProtocol.verstaerkung_gegenwart?.dauer_anzahl_sets?.trim()) {
+      missing.push('Dauer/Anzahl Sets (Sektion 3)');
+    }
+    if (editedProtocol.verstaerkung_gegenwart?.reaktion_verbesserung === null) {
+      missing.push('Reaktion/Verbesserung wahrgenommen? (Sektion 3)');
+    }
+
+    // Section 4: Erster Kontakt
+    if (!editedProtocol.erster_kontakt?.zielerinnerung_beschreibung?.trim()) {
+      missing.push('Beschreibung der Zielerinnerung (Sektion 4)');
+    }
+
+    // Durchgänge
+    if (!editedProtocol.durchgaenge || editedProtocol.durchgaenge.length === 0) {
+      missing.push('Mindestens ein Durchgang');
+    } else {
+      editedProtocol.durchgaenge.forEach((durchgang, index) => {
+        if (durchgang.zaehl_technik === null) {
+          missing.push(`Durchgang ${durchgang.durchgang_nummer}: Zähltechnik angewendet?`);
+        }
+        if (!durchgang.reorientierung_methoden || durchgang.reorientierung_methoden.length === 0) {
+          missing.push(`Durchgang ${durchgang.durchgang_nummer}: Reorientierungsmethoden`);
+        }
+      });
+    }
+
+    // Section 7: Abschlussbewertung
+    if (!editedProtocol.abschlussbewertung?.rueckmeldung_erinnerung?.trim()) {
+      missing.push('Rückmeldung zur Erinnerung (Sektion 7)');
+    }
+
+    // Section 8: Nachbesprechung
+    if (editedProtocol.nachbesprechung?.nachbesprechung_durchgefuehrt === null) {
+      missing.push('Nachbesprechung durchgeführt? (Sektion 8)');
+    }
+    if (editedProtocol.nachbesprechung?.hinweis_inneres_prozessieren === null) {
+      missing.push('Hinweis auf inneres Prozessieren gegeben? (Sektion 8)');
+    }
+
+    // Section 9: Schwierigkeiten
+    if (editedProtocol.schwierigkeiten?.probleme_reorientierung === null) {
+      missing.push('Probleme bei der Reorientierung? (Sektion 9)');
+    }
+    if (editedProtocol.schwierigkeiten?.cipos_vorzeitig_beendet === null) {
+      missing.push('CIPOS vorzeitig beendet? (Sektion 9)');
+    }
+
+    return missing;
+  };
+
   const validateProtocol = (): boolean => {
     const newErrors: { [key: string]: boolean } = {};
 
@@ -407,6 +472,8 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
+  const missingFields = getMissingFields();
 
   const handleSave = () => {
     if (!validateProtocol()) {
@@ -1252,6 +1319,32 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
         </div>
       </Card>
 
+      {/* Missing Fields Warning */}
+      {missingFields.length > 0 && (
+        <Card className="mb-6 border-2 border-amber-500/50 bg-amber-500/10">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
+              <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-amber-400 font-bold text-sm mb-2">
+                Fehlende Felder im CIPOS-Protokoll ({missingFields.length})
+              </h3>
+              <ul className="text-amber-300/90 text-sm space-y-1 columns-1 md:columns-2 gap-x-8">
+                {missingFields.map((field, index) => (
+                  <li key={index} className="flex items-center gap-2 break-inside-avoid">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0"></span>
+                    {field}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Action Buttons */}
       <Card className="sticky bottom-4 z-10 shadow-2xl border-2 border-green-500/30">
         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
@@ -1282,9 +1375,9 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
           )}
         </div>
 
-        {saveStatus === 'error' && (
+        {saveStatus === 'error' && missingFields.length > 0 && (
           <p className="text-red-500 text-sm mt-3">
-            Fehler beim Speichern. Bitte überprüfen Sie alle Pflichtfelder.
+            Fehler beim Speichern. Bitte füllen Sie alle oben aufgelisteten Felder aus.
           </p>
         )}
 

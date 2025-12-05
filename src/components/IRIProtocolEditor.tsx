@@ -464,6 +464,66 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
     }));
   };
 
+  // Get human-readable list of missing fields
+  const getMissingFields = (): string[] => {
+    const missing: string[] = [];
+
+    // Metadata
+    if (!editedProtocol.chiffre?.trim()) missing.push('Patient:innen-Chiffre');
+    if (!editedProtocol.datum) missing.push('Datum');
+    if (!editedProtocol.protokollnummer?.trim()) missing.push('Protokollnummer');
+
+    // Section 2: Indikation
+    if (!editedProtocol.indikation?.indikation_checklist?.length) {
+      missing.push('Indikation (mindestens eine Auswahl)');
+    }
+    if (!editedProtocol.indikation?.ausgangszustand_beschreibung?.trim()) {
+      missing.push('Beschreibung des Ausgangszustands');
+    }
+    if (!editedProtocol.indikation?.ziel_der_iri?.trim()) {
+      missing.push('Ziel der IRI');
+    }
+
+    // Section 3: Positiver Moment
+    if (!editedProtocol.positiver_moment?.positiver_moment_beschreibung?.trim()) {
+      missing.push('Positiver Moment - Beschreibung');
+    }
+    if (!editedProtocol.positiver_moment?.kontext_positiver_moment?.trim()) {
+      missing.push('Kontext des positiven Moments');
+    }
+    if (!editedProtocol.positiver_moment?.wahrgenommene_positive_veraenderung?.trim()) {
+      missing.push('Wahrgenommene positive Veränderung');
+    }
+
+    // Section 4: Körperwahrnehmung
+    if (!editedProtocol.koerperwahrnehmung?.koerperwahrnehmung_rohtext?.trim()) {
+      missing.push('Körperwahrnehmung - Patientenbeschreibung');
+    }
+    if (!editedProtocol.koerperwahrnehmung?.koerperlokalisation?.length) {
+      missing.push('Körperlokalisation (mindestens eine Auswahl)');
+    }
+    if (!editedProtocol.koerperwahrnehmung?.qualitaet_koerperempfindung?.length) {
+      missing.push('Qualität der Körperempfindung (mindestens eine Auswahl)');
+    }
+
+    // Section 5: LOPE vorher
+    if (editedProtocol.lope_vorher === undefined || editedProtocol.lope_vorher === null) {
+      missing.push('LOPE vor Stimulation');
+    }
+
+    // Section 6: Bilaterale Stimulation
+    if (!editedProtocol.bilaterale_stimulation?.sets?.length) {
+      missing.push('Mindestens ein Stimulations-Set');
+    }
+
+    // Section 7: LOPE nachher
+    if (editedProtocol.lope_nachher === undefined || editedProtocol.lope_nachher === null) {
+      missing.push('LOPE nach Stimulation');
+    }
+
+    return missing;
+  };
+
   const validateProtocol = (): boolean => {
     const newErrors: { [key: string]: boolean } = {};
 
@@ -474,6 +534,8 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
+  const missingFields = getMissingFields();
 
   const handleSave = () => {
     if (!validateProtocol()) {
@@ -1159,6 +1221,32 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
         </div>
       </Card>
 
+      {/* Missing Fields Warning */}
+      {missingFields.length > 0 && (
+        <Card className="mb-6 border-2 border-amber-500/50 bg-amber-500/10">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
+              <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-amber-400 font-bold text-sm mb-2">
+                Fehlende Felder im IRI-Protokoll ({missingFields.length})
+              </h3>
+              <ul className="text-amber-300/90 text-sm space-y-1 columns-1 md:columns-2 gap-x-8">
+                {missingFields.map((field, index) => (
+                  <li key={index} className="flex items-center gap-2 break-inside-avoid">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0"></span>
+                    {field}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Action Buttons */}
       <Card className="sticky bottom-4 z-10 shadow-2xl border-2 border-purple-500/30">
         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
@@ -1189,9 +1277,9 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
           )}
         </div>
 
-        {saveStatus === 'error' && (
+        {saveStatus === 'error' && missingFields.length > 0 && (
           <p className="text-red-500 text-sm mt-3">
-            Fehler beim Speichern. Bitte überprüfen Sie alle Pflichtfelder.
+            Fehler beim Speichern. Bitte füllen Sie alle oben aufgelisteten Felder aus.
           </p>
         )}
 
