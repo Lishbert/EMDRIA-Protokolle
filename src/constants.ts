@@ -113,12 +113,37 @@ export const CIPOS_STIMULATION_METHODE_OPTIONS: { value: CIPOSStimulationMethode
   { value: 'kombination', label: 'Kombination / Sonstiges' },
 ];
 
-// CIPOS Reorientierung methods
+// CIPOS Reorientierung methods - Evidenzbasierte Techniken
 export const CIPOS_REORIENTIERUNG_OPTIONS: { value: ReorientierungsMethode; label: string }[] = [
+  // Kognitive Orientierung
   { value: 'gegenstaende_benennen', label: 'Gegenstände im Raum benennen' },
+  { value: 'orientierung_raum', label: 'Orientierung: "Wo bin ich? Welcher Tag ist heute?"' },
   { value: 'rueckwaerts_rechnen', label: 'Rückwärts rechnen (1000–7–7–…)' },
+  
+  // 5-4-3-2-1 Grounding-Technik
+  { value: 'fuenf_vier_drei_zwei_eins', label: '5-4-3-2-1 Technik (5 Dinge sehen, 4 hören, 3 fühlen…)' },
+  
+  // Sensorische/Körperorientierte Techniken
+  { value: 'blickkontakt', label: 'Blickkontakt mit Therapeut:in halten' },
+  { value: 'atemuebung', label: 'Atemübung (z.B. verlängertes Ausatmen, 4-7-8)' },
+  { value: 'koerperwahrnehmung', label: 'Körperwahrnehmung (Hände auf Oberschenkel)' },
+  { value: 'fuesse_boden', label: 'Füße fest auf den Boden drücken / Erdung' },
+  { value: 'selbstberuehrung', label: 'Selbstberührung (Arme um sich selbst, Butterfly-Hug)' },
+  
+  // Externe Stimuli
   { value: 'sensorische_uebungen', label: 'Ball zuwerfen / sensorische Übungen' },
-  { value: 'sonstiges', label: 'Sonstiges' },
+  { value: 'kaltes_wasser', label: 'Kaltes Wasser / Eiswürfel in den Händen' },
+  { value: 'starke_sinnesreize', label: 'Starke Sinnesreize (Duft, Geschmack, Textur)' },
+  
+  // Bewegung & Stimulation
+  { value: 'bewegung_aufstehen', label: 'Bewegung / Aufstehen / Im Raum umhergehen' },
+  { value: 'bilaterale_stimulation', label: 'Kurze bilaterale Stimulation zur Stabilisierung' },
+  
+  // Imagination
+  { value: 'safe_place', label: 'Kurze Safe-Place Imagination' },
+  
+  // Sonstiges
+  { value: 'sonstiges', label: 'Sonstiges (bitte unten beschreiben)' },
 ];
 
 // Default duration options for CIPOS (3-10 seconds)

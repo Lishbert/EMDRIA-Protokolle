@@ -200,6 +200,18 @@ export type ReorientierungsMethode =
   | 'gegenstaende_benennen'
   | 'rueckwaerts_rechnen'
   | 'sensorische_uebungen'
+  | 'fuenf_vier_drei_zwei_eins'
+  | 'blickkontakt'
+  | 'atemuebung'
+  | 'koerperwahrnehmung'
+  | 'orientierung_raum'
+  | 'fuesse_boden'
+  | 'kaltes_wasser'
+  | 'starke_sinnesreize'
+  | 'bilaterale_stimulation'
+  | 'safe_place'
+  | 'bewegung_aufstehen'
+  | 'selbstberuehrung'
   | 'sonstiges';
 
 // Section 4: Erster Kontakt mit der belastenden Erinnerung
@@ -216,6 +228,7 @@ export interface CIPOSDurchgang {
   dauer_sekunden: number; // 3-10 Sekunden
   reorientierung_methoden: ReorientierungsMethode[];
   reorientierung_sonstiges?: string;
+  reorientierung_freitext?: string; // Eigene Reorientierungstechniken
   
   // Gegenwartsorientierung nach Reorientierung
   gegenwartsorientierung_nach: number; // 0-100%

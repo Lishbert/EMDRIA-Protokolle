@@ -728,6 +728,20 @@ const exportCIPOSProtocolAsPDF = (protocol: CIPOSProtocol): void => {
           yPos += 2;
         }
         
+        // Eigene Reorientierungstechniken (Freitext)
+        if (durchgang.reorientierung_freitext) {
+          checkNewPage(15);
+          pdf.setFontSize(9);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text('Eigene Reorientierungstechniken:', margin, yPos);
+          yPos += 4;
+          pdf.setFont('helvetica', 'italic');
+          const freitextLines = pdf.splitTextToSize(durchgang.reorientierung_freitext, contentWidth - 6);
+          pdf.text(freitextLines, margin + 3, yPos);
+          yPos += freitextLines.length * 4 + 2;
+          pdf.setFont('helvetica', 'normal');
+        }
+        
         checkNewPage(15);
         pdf.setFontSize(11);
         pdf.setFont('helvetica', 'bold');

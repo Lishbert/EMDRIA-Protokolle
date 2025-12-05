@@ -571,9 +571,18 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
 
   // Generate a single test durchgang
   const generateTestDurchgang = (nummer: number): CIPOSDurchgang => {
-    const reorientierungMethoden: ReorientierungsMethode[] = ['orientierung_raum', 'blickkontakt', 'atemuebung', 'koerperwahrnehmung'];
-    const randomMethoden = reorientierungMethoden.filter(() => Math.random() > 0.5);
-    if (randomMethoden.length === 0) randomMethoden.push('blickkontakt');
+    const reorientierungMethoden: ReorientierungsMethode[] = [
+      'gegenstaende_benennen', 
+      'orientierung_raum', 
+      'blickkontakt', 
+      'atemuebung', 
+      'koerperwahrnehmung',
+      'fuesse_boden',
+      'fuenf_vier_drei_zwei_eins',
+      'selbstberuehrung'
+    ];
+    const randomMethoden = reorientierungMethoden.filter(() => Math.random() > 0.6);
+    if (randomMethoden.length === 0) randomMethoden.push('blickkontakt', 'atemuebung');
     
     return {
       id: crypto.randomUUID(),
@@ -969,7 +978,7 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
                         </div>
                       </div>
 
-                      <div>
+                      <div className="space-y-4">
                         <label className="block text-sm font-medium text-on-surface mb-3">
                           Reorientierung nach Kontakt (Mehrfachauswahl möglich)
                         </label>
@@ -981,6 +990,19 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
                           sonstigesValue={durchgang.reorientierung_sonstiges || ''}
                           onSonstigesChange={(value) => updateDurchgang(durchgang.id, 'reorientierung_sonstiges', value)}
                         />
+                        
+                        {/* Eigene Reorientierungstechniken - Freitext */}
+                        <div className="mt-4 pt-4 border-t border-muted/30">
+                          <label className="block text-sm font-medium text-on-surface mb-2">
+                            Eigene Reorientierungstechniken <span className="text-on-surface/50">(Freitext)</span>
+                          </label>
+                          <textarea
+                            value={durchgang.reorientierung_freitext || ''}
+                            onChange={(e) => updateDurchgang(durchgang.id, 'reorientierung_freitext', e.target.value)}
+                            className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none resize-y min-h-[80px]"
+                            placeholder="Beschreiben Sie hier weitere angewandte Reorientierungstechniken, z.B. individuelle Ressourcen der Patient:in, spezifische Übungen oder kreative Interventionen..."
+                          />
+                        </div>
                       </div>
 
                       {/* Gegenwartsorientierung nach Reorientierung */}
