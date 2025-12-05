@@ -145,6 +145,85 @@ export const SAMPLE_THERAPEUT_REFLEXION = [
   'Patient konnte die Ressource gut aktivieren und verankern. Gute Voraussetzungen für nächste Sitzung.',
 ];
 
+// CIPOS-specific sample data
+export const SAMPLE_CIPOS_INDIKATOREN = [
+  'Klarer Blick, aufrechte Haltung, orientiert zu Person, Ort und Zeit.',
+  'Patient nimmt Gegenstände im Raum wahr, beschreibt aktuelle Empfindungen.',
+  'Körperwahrnehmung präsent, kann Unterschiede zwischen damals und jetzt benennen.',
+  'Fokus auf Therapeut:in, ruhige Atmung, verankert im Hier und Jetzt.',
+  'Blickkontakt stabil, kann Geräusche im Raum wahrnehmen und benennen.',
+];
+
+export const SAMPLE_CIPOS_BEOBACHTUNGEN = [
+  'Patient wirkt präsent und ansprechbar.',
+  'Leichte Anspannung erkennbar, aber gute Grundorientierung.',
+  'Deutliche Verbesserung der Körperhaltung nach Stabilisierung.',
+  'Mimik entspannt sich zunehmend.',
+  'Atmung wird ruhiger und tiefer.',
+];
+
+export const SAMPLE_CIPOS_DAUER_SETS = [
+  '3 kurze Sets à 10-15 Sekunden',
+  '5 langsame Sets à 15 Sekunden',
+  '4 Sets mit je 20 Sekunden',
+  '2-3 kurze Stabilisierungssets',
+  '5 Sets mit fokussierter Aufmerksamkeit',
+];
+
+export const SAMPLE_CIPOS_ZIELERINNERUNG = [
+  'Erinnerung an belastendes Ereignis in der Kindheit: Streit der Eltern',
+  'Flashback-auslösende Situation: Enger Raum / Aufzug',
+  'Traumatische Erfahrung: Autounfall vor 3 Jahren',
+  'Auslöser: Konfliktsituation am Arbeitsplatz',
+  'Belastende Erinnerung: Verlust eines nahestehenden Menschen',
+  'Zukunftsangst: Bevorstehende medizinische Untersuchung',
+];
+
+export const SAMPLE_CIPOS_RUECKMELDUNG_ERINNERUNG = [
+  'Die Erinnerung fühlt sich distanzierter an, weniger bedrohlich.',
+  'Es ist immer noch belastend, aber ich kann es besser aushalten.',
+  'Das Bild ist blasser geworden, die Emotionen weniger intensiv.',
+  'Ich fühle mich ruhiger, wenn ich daran denke.',
+  'Die Anspannung hat deutlich nachgelassen.',
+];
+
+export const SAMPLE_CIPOS_RUECKMELDUNG_KOERPER = [
+  'Die Enge in der Brust ist weg, ich kann wieder frei atmen.',
+  'Die Schultern sind entspannter, der Nacken weniger verspannt.',
+  'Das Zittern hat aufgehört, meine Hände sind ruhig.',
+  'Ich spüre mehr Wärme und Entspannung im ganzen Körper.',
+  'Der Druck im Magen ist verschwunden.',
+];
+
+export const SAMPLE_CIPOS_AUFGABE_TAGEBUCH = [
+  'Täglich Stabilisierungsübung durchführen und Veränderungen notieren.',
+  'Bei Belastung: Sichere-Ort-Übung anwenden und dokumentieren.',
+  'Achtsam auf Trigger achten und Reorientierungstechniken anwenden.',
+  'Tagebuch führen über Momente der Gegenwartsorientierung.',
+];
+
+export const SAMPLE_CIPOS_STABILISIERUNG = [
+  'Sichere-Ort-Imaginationsübung',
+  'Atemübung mit Fokus auf Ausatmung',
+  'Sensorische Erdung (5-4-3-2-1 Technik)',
+  'Containment-Übung',
+  'Körperliche Bewegung zur Regulation',
+];
+
+export const SAMPLE_CIPOS_GESAMTEINSCHAETZUNG = [
+  'CIPOS verlief planmäßig. Gute Toleranz der Belastungsexposition bei ausreichender Gegenwartsorientierung.',
+  'Erfolgreiche Durchführung mit deutlicher SUD-Reduktion. Patient zeigt gute Reorientierungsfähigkeit.',
+  'Zunächst schwierige Reorientierung, nach zusätzlicher Stabilisierung aber guter Verlauf.',
+  'Patient konnte dosierte Exposition gut tolerieren. Ressourcen zur Selbstregulation gestärkt.',
+];
+
+export const SAMPLE_CIPOS_NAECHSTE_SITZUNG = [
+  'Fortsetzung CIPOS mit gleicher Erinnerung zur weiteren Verarbeitung.',
+  'Bei guter Stabilität: Standardprotokoll zur Reprozessierung einleiten.',
+  'Zunächst weitere Ressourcenstärkung, dann erneuter CIPOS-Versuch.',
+  'Review der Hausaufgaben, dann Entscheidung über weiteres Vorgehen.',
+];
+
 // Helper functions for generating random test data - exported for individual field generation
 export const getRandomItem = <T>(array: T[]): T => {
   return array[Math.floor(Math.random() * array.length)];
@@ -229,6 +308,29 @@ export const getRandomChannelItem = (): ChannelItem => {
 // Generate a random LOPE value (0-10)
 export const getRandomLOPE = (min: number = 0, max: number = 10): number => {
   return Math.floor(Math.random() * (max - min + 1)) + min;
+};
+
+// Generate a random SUD value (0-10)
+export const getRandomSUD = (min: number = 0, max: number = 10): number => {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+};
+
+// Generate a random percentage value
+export const getRandomPercentage = (min: number = 0, max: number = 100): number => {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+};
+
+// Generate a random boolean or null
+export const getRandomBooleanOrNull = (): boolean | null => {
+  const rand = Math.random();
+  if (rand < 0.4) return true;
+  if (rand < 0.8) return false;
+  return null;
+};
+
+// Generate a random boolean
+export const getRandomBoolean = (): boolean => {
+  return Math.random() > 0.5;
 };
 
 // Generate a random IRI stimulation set

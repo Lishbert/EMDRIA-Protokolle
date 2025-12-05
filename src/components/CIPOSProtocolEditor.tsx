@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Card } from './ui';
-import { SaveIcon, XMarkIcon, DownloadIcon, PrinterIcon, PlusIcon, TrashIcon, ChevronUpIcon, ChevronDownIcon } from './icons';
+import { SaveIcon, XMarkIcon, DownloadIcon, PrinterIcon, PlusIcon, TrashIcon, ChevronUpIcon, ChevronDownIcon, SparklesIcon } from './icons';
 import { MetadataForm } from './MetadataForm';
 import type { 
   CIPOSProtocol, 
@@ -15,6 +15,23 @@ import {
   CIPOS_REORIENTIERUNG_OPTIONS,
   CIPOS_DAUER_OPTIONS,
 } from '../constants';
+import {
+  getRandomItem,
+  getRandomPercentage,
+  getRandomSUD,
+  getRandomBoolean,
+  getRandomBooleanOrNull,
+  SAMPLE_CIPOS_INDIKATOREN,
+  SAMPLE_CIPOS_BEOBACHTUNGEN,
+  SAMPLE_CIPOS_DAUER_SETS,
+  SAMPLE_CIPOS_ZIELERINNERUNG,
+  SAMPLE_CIPOS_RUECKMELDUNG_ERINNERUNG,
+  SAMPLE_CIPOS_RUECKMELDUNG_KOERPER,
+  SAMPLE_CIPOS_AUFGABE_TAGEBUCH,
+  SAMPLE_CIPOS_STABILISIERUNG,
+  SAMPLE_CIPOS_GESAMTEINSCHAETZUNG,
+  SAMPLE_CIPOS_NAECHSTE_SITZUNG,
+} from '../utils/testData';
 
 interface CIPOSProtocolEditorProps {
   protocol: CIPOSProtocol | null;
@@ -207,22 +224,44 @@ const YesNoToggle: React.FC<YesNoToggleProps> = ({ label, value, onChange }) => 
   );
 };
 
-// Section Header Component
-interface SectionHeaderProps {
-  number: number;
-  title: string;
-  subtitle?: string;
+// Test Button Component
+interface TestButtonProps {
+  onClick: () => void;
+  title?: string;
 }
 
-const SectionHeader: React.FC<SectionHeaderProps> = ({ number, title, subtitle }) => (
-  <div className="flex items-start gap-3 mb-4">
-    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-green-600 text-white font-bold text-sm flex-shrink-0">
-      {number}
-    </span>
-    <div>
-      <h2 className="text-lg font-bold text-on-surface-strong">{title}</h2>
-      {subtitle && <p className="text-sm text-on-surface/70">{subtitle}</p>}
+const TestButton: React.FC<TestButtonProps> = ({ onClick, title = 'Testdaten einfügen' }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
+    title={title}
+  >
+    <SparklesIcon />
+    Testdaten
+  </button>
+);
+
+// Section Header Component
+interface SectionHeaderProps {
+  number: number | string;
+  title: string;
+  subtitle?: string;
+  onTestData?: () => void;
+}
+
+const SectionHeader: React.FC<SectionHeaderProps> = ({ number, title, subtitle, onTestData }) => (
+  <div className="flex items-start justify-between mb-4">
+    <div className="flex items-start gap-3">
+      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-green-600 text-white font-bold text-sm flex-shrink-0">
+        {number}
+      </span>
+      <div>
+        <h2 className="text-lg font-bold text-on-surface-strong">{title}</h2>
+        {subtitle && <p className="text-sm text-on-surface/70">{subtitle}</p>}
+      </div>
     </div>
+    {onTestData && <TestButton onClick={onTestData} />}
   </div>
 );
 
@@ -244,6 +283,7 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
   const [errors, setErrors] = useState<{ [key: string]: boolean }>({});
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [expandedDurchgang, setExpandedDurchgang] = useState<number | null>(null);
+  const [showDurchgangTestMenu, setShowDurchgangTestMenu] = useState(false);
 
   // Initialize or reset form when protocol changes
   useEffect(() => {
@@ -436,6 +476,146 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
     ? sudNachher - sudVorher 
     : null;
 
+  // Test data functions for each section
+  const fillTestDataSection2 = () => {
+    setEditedProtocol((prev) => ({
+      ...prev,
+      gegenwartsorientierung_vorher: {
+        ...prev.gegenwartsorientierung_vorher,
+        prozent_gegenwartsorientierung: getRandomPercentage(40, 75),
+        indikatoren_patient: getRandomItem(SAMPLE_CIPOS_INDIKATOREN),
+        beobachtungen_therapeut: getRandomItem(SAMPLE_CIPOS_BEOBACHTUNGEN),
+      },
+    }));
+  };
+
+  const fillTestDataSection3 = () => {
+    const methoden: CIPOSStimulationMethode[] = ['visuell', 'taktil', 'auditiv', 'kombination'];
+    setEditedProtocol((prev) => ({
+      ...prev,
+      verstaerkung_gegenwart: {
+        ...prev.verstaerkung_gegenwart,
+        stimulation_methode: getRandomItem(methoden),
+        dauer_anzahl_sets: getRandomItem(SAMPLE_CIPOS_DAUER_SETS),
+        reaktion_verbesserung: getRandomBoolean(),
+        gegenwartsorientierung_nach_stimulation: getRandomPercentage(65, 90),
+        kommentar: getRandomItem(SAMPLE_CIPOS_BEOBACHTUNGEN),
+      },
+    }));
+  };
+
+  const fillTestDataSection4 = () => {
+    setEditedProtocol((prev) => ({
+      ...prev,
+      erster_kontakt: {
+        ...prev.erster_kontakt,
+        zielerinnerung_beschreibung: getRandomItem(SAMPLE_CIPOS_ZIELERINNERUNG),
+        sud_vor_kontakt: getRandomSUD(5, 9),
+        belastungsdauer_sekunden: getRandomItem(CIPOS_DAUER_OPTIONS),
+      },
+    }));
+  };
+
+  const fillTestDataSection7 = () => {
+    setEditedProtocol((prev) => ({
+      ...prev,
+      abschlussbewertung: {
+        ...prev.abschlussbewertung,
+        sud_nach_letztem_durchgang: getRandomSUD(1, 5),
+        rueckmeldung_erinnerung: getRandomItem(SAMPLE_CIPOS_RUECKMELDUNG_ERINNERUNG),
+        rueckmeldung_koerper: getRandomItem(SAMPLE_CIPOS_RUECKMELDUNG_KOERPER),
+        subjektive_sicherheit: getRandomPercentage(60, 90),
+      },
+    }));
+  };
+
+  const fillTestDataSection8 = () => {
+    setEditedProtocol((prev) => ({
+      ...prev,
+      nachbesprechung: {
+        ...prev.nachbesprechung,
+        nachbesprechung_durchgefuehrt: true,
+        hinweis_inneres_prozessieren: getRandomBoolean(),
+        aufgabe_tagebuch: getRandomItem(SAMPLE_CIPOS_AUFGABE_TAGEBUCH),
+        beobachtungen_therapeut: getRandomItem(SAMPLE_CIPOS_BEOBACHTUNGEN),
+      },
+    }));
+  };
+
+  const fillTestDataSection9 = () => {
+    const hasProblems = getRandomBoolean();
+    const wasEnded = !hasProblems && getRandomBoolean();
+    setEditedProtocol((prev) => ({
+      ...prev,
+      schwierigkeiten: {
+        ...prev.schwierigkeiten,
+        probleme_reorientierung: hasProblems,
+        stabilisierungstechniken: hasProblems ? getRandomItem(SAMPLE_CIPOS_STABILISIERUNG) : '',
+        cipos_vorzeitig_beendet: wasEnded,
+        cipos_vorzeitig_grund: wasEnded ? 'Patient:in nicht ausreichend stabilisierbar.' : '',
+      },
+    }));
+  };
+
+  const fillTestDataSection10 = () => {
+    setEditedProtocol((prev) => ({
+      ...prev,
+      abschluss_dokumentation: {
+        ...prev.abschluss_dokumentation,
+        gesamteinschaetzung_therapeut: getRandomItem(SAMPLE_CIPOS_GESAMTEINSCHAETZUNG),
+        planung_naechste_sitzung: getRandomItem(SAMPLE_CIPOS_NAECHSTE_SITZUNG),
+        signatur_therapeut: `Dr. Muster, ${new Date().toLocaleDateString('de-DE')}`,
+      },
+    }));
+  };
+
+  // Generate a single test durchgang
+  const generateTestDurchgang = (nummer: number): CIPOSDurchgang => {
+    const reorientierungMethoden: ReorientierungsMethode[] = ['orientierung_raum', 'blickkontakt', 'atemuebung', 'koerperwahrnehmung'];
+    const randomMethoden = reorientierungMethoden.filter(() => Math.random() > 0.5);
+    if (randomMethoden.length === 0) randomMethoden.push('blickkontakt');
+    
+    return {
+      id: crypto.randomUUID(),
+      durchgang_nummer: nummer,
+      bereitschaft_patient: nummer > 1 ? true : null,
+      zaehl_technik: getRandomBoolean(),
+      dauer_sekunden: getRandomItem(CIPOS_DAUER_OPTIONS),
+      reorientierung_methoden: randomMethoden,
+      gegenwartsorientierung_nach: getRandomPercentage(65, 95),
+      stimulation_verstaerkung: nummer === 1 ? getRandomBooleanOrNull() : undefined,
+      kommentar: getRandomItem(SAMPLE_CIPOS_BEOBACHTUNGEN),
+    };
+  };
+
+  // Fill durchgänge with test data
+  const fillDurchgaengeWithTestData = (count: number) => {
+    const newDurchgaenge = Array.from({ length: count }, (_, i) => generateTestDurchgang(i + 1));
+    setEditedProtocol((prev) => ({
+      ...prev,
+      durchgaenge: newDurchgaenge,
+    }));
+    setExpandedDurchgang(null);
+    setShowDurchgangTestMenu(false);
+  };
+
+  // Close dropdown menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showDurchgangTestMenu) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.durchgang-test-dropdown')) {
+          setShowDurchgangTestMenu(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDurchgangTestMenu]);
+
   return (
     <div className="space-y-6">
       {/* Section 1: Metadata */}
@@ -452,6 +632,7 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
           number={2} 
           title="Einschätzung der Gegenwartsorientierung" 
           subtitle="vor Beginn"
+          onTestData={fillTestDataSection2}
         />
         
         <div className="space-y-6">
@@ -460,6 +641,7 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
             description={'"Zu wie viel Prozent sind Sie in der Gegenwart?"'}
             value={editedProtocol.gegenwartsorientierung_vorher?.prozent_gegenwartsorientierung || 50}
             onChange={(value) => updateField('gegenwartsorientierung_vorher', 'prozent_gegenwartsorientierung', value)}
+            targetValue={70}
           />
 
           <div>
@@ -494,6 +676,7 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
           number={3} 
           title="Verstärkung der sicheren Gegenwart" 
           subtitle="Durchführung"
+          onTestData={fillTestDataSection3}
         />
         
         <div className="space-y-6">
@@ -576,7 +759,8 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
       <Card className="mb-6">
         <SectionHeader 
           number={4} 
-          title="Erster Kontakt mit der belastenden Erinnerung" 
+          title="Erster Kontakt mit der belastenden Erinnerung"
+          onTestData={fillTestDataSection4}
         />
         
         <div className="space-y-6">
@@ -620,75 +804,107 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
 
       {/* Durchgänge (Sections 4.4/5/6) */}
       <Card className="mb-6">
-        <div className="flex items-center justify-between mb-4">
+        {/* Header with title and test data dropdown */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-3">
             <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-green-600 text-white font-bold text-sm">
               4-6
             </span>
             <h2 className="text-lg font-bold text-on-surface-strong">Durchgänge (Kontakt & Reorientierung)</h2>
           </div>
-          <Button onClick={addDurchgang} variant="secondary" size="sm" disabled={(editedProtocol.durchgaenge?.length || 0) >= 3}>
-            <PlusIcon />
-            Durchgang hinzufügen
-          </Button>
+          <div className="relative durchgang-test-dropdown">
+            <button
+              type="button"
+              onClick={() => setShowDurchgangTestMenu(!showDurchgangTestMenu)}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
+              title="Durchgänge mit Testdaten füllen"
+            >
+              <SparklesIcon />
+              Testdaten einfügen
+              <svg className={`w-4 h-4 transition-transform ${showDurchgangTestMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {showDurchgangTestMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-surface border-2 border-brand-secondary/30 rounded-lg shadow-2xl z-50 animate-in slide-in-from-top-2 duration-200">
+                <div className="p-1">
+                  <button
+                    onClick={() => fillDurchgaengeWithTestData(5)}
+                    className="w-full text-left px-3 py-2 rounded hover:bg-background text-on-surface text-sm transition-colors"
+                  >
+                    5 Durchgänge erstellen
+                  </button>
+                  <button
+                    onClick={() => fillDurchgaengeWithTestData(10)}
+                    className="w-full text-left px-3 py-2 rounded hover:bg-background text-on-surface text-sm transition-colors"
+                  >
+                    10 Durchgänge erstellen
+                  </button>
+                  <button
+                    onClick={() => fillDurchgaengeWithTestData(15)}
+                    className="w-full text-left px-3 py-2 rounded hover:bg-background text-on-surface text-sm transition-colors"
+                  >
+                    15 Durchgänge erstellen
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {(editedProtocol.durchgaenge || []).length === 0 ? (
-          <div className="text-center py-8 text-on-surface/60 bg-surface/50 rounded-lg border-2 border-dashed border-muted">
-            <p>Noch keine Durchgänge dokumentiert.</p>
-            <p className="text-sm mt-1">Klicken Sie auf "Durchgang hinzufügen" um zu beginnen.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {(editedProtocol.durchgaenge || []).map((durchgang, index) => {
-              const isExpanded = expandedDurchgang === index;
-              const durchgangTitel = durchgang.durchgang_nummer === 1 
-                ? 'Erster Durchgang' 
-                : durchgang.durchgang_nummer === 2 
-                  ? 'Zweiter Durchgang' 
-                  : 'Dritter Durchgang';
-              const sectionNum = durchgang.durchgang_nummer === 1 ? '4.4/4.5' : durchgang.durchgang_nummer === 2 ? '5' : '6';
-              
-              return (
-                <div
-                  key={durchgang.id}
-                  className={`border-2 rounded-lg transition-colors ${
-                    isExpanded ? 'border-green-500/50 bg-surface/30' : 'border-muted/30 bg-background'
-                  }`}
-                >
-                  {/* Header */}
+        <div className="space-y-4">
+          {(editedProtocol.durchgaenge || []).length === 0 ? (
+            <div className="text-center py-8 text-on-surface/60 bg-surface/50 rounded-lg border-2 border-dashed border-muted">
+              <p>Noch keine Durchgänge dokumentiert.</p>
+              <p className="text-sm mt-1">Klicken Sie auf "Durchgang hinzufügen" um zu beginnen.</p>
+            </div>
+          ) : (
+            <>
+              {(editedProtocol.durchgaenge || []).map((durchgang, index) => {
+                const isExpanded = expandedDurchgang === index;
+                const durchgangTitel = `Durchgang ${durchgang.durchgang_nummer}`;
+                const sectionNum = durchgang.durchgang_nummer === 1 ? '4.4/4.5' : durchgang.durchgang_nummer === 2 ? '5' : `${durchgang.durchgang_nummer + 3}`;
+                
+                return (
                   <div
-                    className="flex items-center justify-between p-4 cursor-pointer"
-                    onClick={() => setExpandedDurchgang(isExpanded ? null : index)}
+                    key={durchgang.id}
+                    className={`border-2 rounded-lg transition-colors ${
+                      isExpanded ? 'border-green-500/50 bg-surface/30' : 'border-muted/30 bg-background'
+                    }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-bold text-green-400">{sectionNum}</span>
-                      <span className="font-bold text-on-surface">{durchgangTitel}</span>
-                      {!isExpanded && durchgang.gegenwartsorientierung_nach !== undefined && (
-                        <span className={`text-sm px-2 py-0.5 rounded-full ${
-                          durchgang.gegenwartsorientierung_nach >= 70 
-                            ? 'bg-green-500/20 text-green-400' 
-                            : 'bg-yellow-500/20 text-yellow-400'
-                        }`}>
-                          GO: {durchgang.gegenwartsorientierung_nach}%
-                        </span>
-                      )}
+                    {/* Header */}
+                    <div
+                      className="flex items-center justify-between p-4 cursor-pointer"
+                      onClick={() => setExpandedDurchgang(isExpanded ? null : index)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-bold text-green-400">{sectionNum}</span>
+                        <span className="font-bold text-on-surface">{durchgangTitel}</span>
+                        {!isExpanded && durchgang.gegenwartsorientierung_nach !== undefined && (
+                          <span className={`text-sm px-2 py-0.5 rounded-full ${
+                            durchgang.gegenwartsorientierung_nach >= 70 
+                              ? 'bg-green-500/20 text-green-400' 
+                              : 'bg-yellow-500/20 text-yellow-400'
+                          }`}>
+                            GO: {durchgang.gegenwartsorientierung_nach}%
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeDurchgang(durchgang.id);
+                          }}
+                          className="p-1 text-muted hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                          title="Durchgang entfernen"
+                        >
+                          <TrashIcon />
+                        </button>
+                        {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeDurchgang(durchgang.id);
-                        }}
-                        className="p-1 text-muted hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
-                        title="Durchgang entfernen"
-                      >
-                        <TrashIcon />
-                      </button>
-                      {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
-                    </div>
-                  </div>
 
                   {/* Expanded Content */}
                   {isExpanded && (
@@ -804,13 +1020,22 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
                 </div>
               );
             })}
+            </>
+          )}
+
+          {/* Add Durchgang button at the bottom */}
+          <div className="pt-4">
+            <Button onClick={addDurchgang} className="w-full md:w-auto">
+              <PlusIcon />
+              Durchgang hinzufügen
+            </Button>
           </div>
-        )}
+        </div>
       </Card>
 
       {/* Section 7: Abschlussbewertung */}
       <Card className="mb-6">
-        <SectionHeader number={7} title="Abschlussbewertung" />
+        <SectionHeader number={7} title="Abschlussbewertung" onTestData={fillTestDataSection7} />
         
         <div className="space-y-6">
           <SubsectionHeader number="7.1" title="SUD nach dem letzten Durchgang" />
@@ -871,7 +1096,7 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
 
       {/* Section 8: Nachbesprechung / Abschluss */}
       <Card className="mb-6">
-        <SectionHeader number={8} title="Nachbesprechung / Abschluss" />
+        <SectionHeader number={8} title="Nachbesprechung / Abschluss" onTestData={fillTestDataSection8} />
         
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -916,7 +1141,7 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
 
       {/* Section 9: Falls Schwierigkeiten auftraten */}
       <Card className="mb-6">
-        <SectionHeader number={9} title="Falls Schwierigkeiten auftraten" />
+        <SectionHeader number={9} title="Falls Schwierigkeiten auftraten" onTestData={fillTestDataSection9} />
         
         <div className="space-y-6">
           <YesNoToggle
@@ -963,7 +1188,7 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
 
       {/* Section 10: Abschluss der Dokumentation */}
       <Card className="mb-6">
-        <SectionHeader number={10} title="Abschluss der Dokumentation" />
+        <SectionHeader number={10} title="Abschluss der Dokumentation" onTestData={fillTestDataSection10} />
         
         <div className="space-y-6">
           <div>
