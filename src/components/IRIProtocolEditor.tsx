@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Button, Card } from './ui';
 import { SaveIcon, XMarkIcon, DownloadIcon, PrinterIcon, PlusIcon, TrashIcon, PencilIcon, ChevronUpIcon, SparklesIcon } from './icons';
 import { MetadataForm } from './MetadataForm';
 import type { 
   IRIProtocol, 
+  CIPOSProtocol,
+  StandardProtocol,
   IndikationOption, 
   KoerperlokalisationOption, 
   KoerperempfindungQualitaet,
@@ -13,6 +15,9 @@ import type {
 } from '../types';
 import { saveProtocol } from '../utils/storage';
 import { exportProtocolAsJSON, exportProtocolAsPDF } from '../utils/export';
+
+// Lazy load other editors to avoid circular dependencies
+const CIPOSProtocolEditor = lazy(() => import('./CIPOSProtocolEditor').then(m => ({ default: m.CIPOSProtocolEditor })));
 import {
   INDIKATION_OPTIONS,
   KOERPERLOKALISATION_OPTIONS,
@@ -266,6 +271,66 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
   }
 
   const handleMetadataChange = (metadata: Partial<IRIProtocol>) => {
+    // If switching to a different protocol type, convert the protocol
+    if (metadata.protocolType && metadata.protocolType !== 'IRI') {
+      if (metadata.protocolType === 'CIPOS') {
+        // Convert to CIPOS protocol
+        const ciposProtocol = {
+          id: editedProtocol.id || crypto.randomUUID(),
+          chiffre: metadata.chiffre || editedProtocol.chiffre || '',
+          datum: metadata.datum || editedProtocol.datum || new Date().toISOString().split('T')[0],
+          protokollnummer: metadata.protokollnummer || editedProtocol.protokollnummer || '',
+          protocolType: 'CIPOS' as const,
+          createdAt: editedProtocol.createdAt || Date.now(),
+          lastModified: Date.now(),
+          gegenwartsorientierung_vorher: {
+            prozent_gegenwartsorientierung: 50,
+            indikatoren_patient: '',
+          },
+          verstaerkung_gegenwart: {
+            stimulation_methode: 'visuell' as const,
+            dauer_anzahl_sets: '',
+            reaktion_verbesserung: null,
+            gegenwartsorientierung_nach_stimulation: 50,
+          },
+          erster_kontakt: {
+            zielerinnerung_beschreibung: '',
+            sud_vor_kontakt: 5,
+            belastungsdauer_sekunden: 5,
+          },
+          durchgaenge: [],
+          abschlussbewertung: {
+            sud_nach_letztem_durchgang: 5,
+          },
+          nachbesprechung: {
+            nachbesprechung_durchgefuehrt: null,
+            hinweis_inneres_prozessieren: null,
+          },
+          schwierigkeiten: {
+            probleme_reorientierung: null,
+            cipos_vorzeitig_beendet: null,
+          },
+          abschluss_dokumentation: {},
+        };
+        setEditedProtocol(ciposProtocol as unknown as Partial<IRIProtocol>);
+      } else {
+        // Convert to Standard protocol (Reprozessieren, Sicherer Ort, Custom)
+        const standardProtocol = {
+          id: editedProtocol.id || crypto.randomUUID(),
+          chiffre: metadata.chiffre || editedProtocol.chiffre || '',
+          datum: metadata.datum || editedProtocol.datum || new Date().toISOString().split('T')[0],
+          protokollnummer: metadata.protokollnummer || editedProtocol.protokollnummer || '',
+          protocolType: metadata.protocolType,
+          createdAt: editedProtocol.createdAt || Date.now(),
+          lastModified: Date.now(),
+          startKnoten: '',
+          channel: [],
+        };
+        setEditedProtocol(standardProtocol as unknown as Partial<IRIProtocol>);
+      }
+      return;
+    }
+
     setEditedProtocol({
       ...editedProtocol,
       ...metadata,
@@ -604,6 +669,33 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
       ? editedProtocol.lope_nachher - editedProtocol.lope_vorher
       : null;
 
+  // If the protocol type has changed to CIPOS, render CIPOS editor
+  if (editedProtocol.protocolType === 'CIPOS') {
+    return (
+      <Suspense fallback={<div className="p-8 text-center text-on-surface">Lade CIPOS-Editor...</div>}>
+        <CIPOSProtocolEditor
+          protocol={editedProtocol as unknown as CIPOSProtocol}
+          onSave={onSave}
+          onCancel={onCancel}
+        />
+      </Suspense>
+    );
+  }
+
+  // If the protocol type has changed to a Standard type, render a simplified standard form
+  // that will save and the parent ProtocolEditor will handle the switch
+  if (editedProtocol.protocolType && editedProtocol.protocolType !== 'IRI' && editedProtocol.protocolType !== 'CIPOS') {
+    // Save the converted protocol and notify parent
+    const standardProtocol = editedProtocol as unknown as StandardProtocol;
+    saveProtocol(standardProtocol);
+    setTimeout(() => onSave(), 100);
+    return (
+      <div className="p-8 text-center text-on-surface">
+        <p className="text-lg">Protokolltyp wird geändert zu <strong>{editedProtocol.protocolType}</strong>...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Section 1: Metadata */}
@@ -611,7 +703,6 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
         metadata={editedProtocol}
         onChange={handleMetadataChange}
         errors={errors}
-        lockProtocolType={true}
       />
 
       {/* Section 2: Indikation / Ausgangslage */}
@@ -905,13 +996,7 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
 
           {/* Stimulation Sets */}
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-medium text-on-surface">Stimulationssets</h3>
-              <Button onClick={addStimulationSet} variant="secondary" size="sm">
-                <PlusIcon />
-                Set hinzufügen
-              </Button>
-            </div>
+            <h3 className="font-medium text-on-surface mb-4">Stimulationssets</h3>
 
             {(editedProtocol.bilaterale_stimulation?.sets || []).length === 0 ? (
               <div className="text-center py-8 text-on-surface/60 bg-surface/50 rounded-lg border-2 border-dashed border-muted">
@@ -1101,6 +1186,13 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
                 })}
               </div>
             )}
+
+            <div className="pt-4">
+              <Button onClick={addStimulationSet} className="w-full md:w-auto">
+                <PlusIcon />
+                Set hinzufügen
+              </Button>
+            </div>
           </div>
         </div>
       </Card>

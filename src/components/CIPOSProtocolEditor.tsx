@@ -1,15 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Button, Card } from './ui';
 import { SaveIcon, XMarkIcon, DownloadIcon, PrinterIcon, PlusIcon, TrashIcon, ChevronUpIcon, ChevronDownIcon, SparklesIcon } from './icons';
 import { MetadataForm } from './MetadataForm';
 import type { 
   CIPOSProtocol, 
+  IRIProtocol,
+  StandardProtocol,
   CIPOSStimulationMethode,
   ReorientierungsMethode,
   CIPOSDurchgang,
 } from '../types';
 import { saveProtocol } from '../utils/storage';
 import { exportProtocolAsJSON, exportProtocolAsPDF } from '../utils/export';
+
+// Lazy load other editors to avoid circular dependencies
+const IRIProtocolEditor = lazy(() => import('./IRIProtocolEditor').then(m => ({ default: m.IRIProtocolEditor })));
 import {
   CIPOS_STIMULATION_METHODE_OPTIONS,
   CIPOS_REORIENTIERUNG_OPTIONS,
@@ -334,6 +339,61 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
   }, [protocol]);
 
   const handleMetadataChange = (metadata: Partial<CIPOSProtocol>) => {
+    // If switching to a different protocol type, convert the protocol
+    if (metadata.protocolType && metadata.protocolType !== 'CIPOS') {
+      if (metadata.protocolType === 'IRI') {
+        // Convert to IRI protocol
+        const iriProtocol = {
+          id: editedProtocol.id || crypto.randomUUID(),
+          chiffre: metadata.chiffre || editedProtocol.chiffre || '',
+          datum: metadata.datum || editedProtocol.datum || new Date().toISOString().split('T')[0],
+          protokollnummer: metadata.protokollnummer || editedProtocol.protokollnummer || '',
+          protocolType: 'IRI' as const,
+          createdAt: editedProtocol.createdAt || Date.now(),
+          lastModified: Date.now(),
+          indikation: {
+            indikation_checklist: [],
+            ausgangszustand_beschreibung: '',
+            ziel_der_iri: '',
+          },
+          positiver_moment: {
+            positiver_moment_beschreibung: '',
+            kontext_positiver_moment: '',
+            wahrgenommene_positive_veraenderung: '',
+          },
+          koerperwahrnehmung: {
+            koerperwahrnehmung_rohtext: '',
+            koerperlokalisation: [],
+            qualitaet_koerperempfindung: [],
+          },
+          bilaterale_stimulation: {
+            stimulation_typ: 'visuell' as const,
+            sets: [],
+          },
+          ressourcen_einschaetzung: {},
+          abschluss: {
+            einwilligung_dokumentation: false,
+          },
+        };
+        setEditedProtocol(iriProtocol as unknown as Partial<CIPOSProtocol>);
+      } else {
+        // Convert to Standard protocol (Reprozessieren, Sicherer Ort, Custom)
+        const standardProtocol = {
+          id: editedProtocol.id || crypto.randomUUID(),
+          chiffre: metadata.chiffre || editedProtocol.chiffre || '',
+          datum: metadata.datum || editedProtocol.datum || new Date().toISOString().split('T')[0],
+          protokollnummer: metadata.protokollnummer || editedProtocol.protokollnummer || '',
+          protocolType: metadata.protocolType,
+          createdAt: editedProtocol.createdAt || Date.now(),
+          lastModified: Date.now(),
+          startKnoten: '',
+          channel: [],
+        };
+        setEditedProtocol(standardProtocol as unknown as Partial<CIPOSProtocol>);
+      }
+      return;
+    }
+
     setEditedProtocol({
       ...editedProtocol,
       ...metadata,
@@ -692,6 +752,33 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
     };
   }, [showDurchgangTestMenu]);
 
+  // If the protocol type has changed to IRI, render IRI editor
+  if (editedProtocol.protocolType === 'IRI') {
+    return (
+      <Suspense fallback={<div className="p-8 text-center text-on-surface">Lade IRI-Editor...</div>}>
+        <IRIProtocolEditor
+          protocol={editedProtocol as unknown as IRIProtocol}
+          onSave={onSave}
+          onCancel={onCancel}
+        />
+      </Suspense>
+    );
+  }
+
+  // If the protocol type has changed to a Standard type, render a simplified standard form
+  // that will save and the parent ProtocolEditor will handle the switch
+  if (editedProtocol.protocolType && editedProtocol.protocolType !== 'CIPOS' && editedProtocol.protocolType !== 'IRI') {
+    // Save the converted protocol and notify parent
+    const standardProtocol = editedProtocol as unknown as StandardProtocol;
+    saveProtocol(standardProtocol);
+    setTimeout(() => onSave(), 100);
+    return (
+      <div className="p-8 text-center text-on-surface">
+        <p className="text-lg">Protokolltyp wird geändert zu <strong>{editedProtocol.protocolType}</strong>...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Section 1: Metadata */}
@@ -699,7 +786,6 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
         metadata={editedProtocol}
         onChange={handleMetadataChange}
         errors={errors}
-        lockProtocolType={true}
       />
 
       {/* Section 2: Einschätzung der Gegenwartsorientierung (vor Beginn) */}
