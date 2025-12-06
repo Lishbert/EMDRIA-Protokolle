@@ -1,42 +1,20 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { Button, Card } from './ui';
-import { SaveIcon, XMarkIcon, DownloadIcon, PrinterIcon, PlusIcon, TrashIcon, ChevronUpIcon, ChevronDownIcon, SparklesIcon } from './icons';
+import React, { useState, useEffect } from 'react';
+import { Button, Card, Input, Select } from './ui';
+import { SaveIcon, XMarkIcon, DownloadIcon, PrinterIcon, PlusIcon, TrashIcon } from './icons';
 import { MetadataForm } from './MetadataForm';
 import type { 
   CIPOSProtocol, 
-  IRIProtocol,
-  StandardProtocol,
+  CIPOSDurchgang,
   CIPOSStimulationMethode,
   ReorientierungsMethode,
-  CIPOSDurchgang,
 } from '../types';
 import { saveProtocol } from '../utils/storage';
 import { exportProtocolAsJSON, exportProtocolAsPDF } from '../utils/export';
-
-// Lazy load other editors to avoid circular dependencies
-const IRIProtocolEditor = lazy(() => import('./IRIProtocolEditor').then(m => ({ default: m.IRIProtocolEditor })));
 import {
   CIPOS_STIMULATION_METHODE_OPTIONS,
   CIPOS_REORIENTIERUNG_OPTIONS,
   CIPOS_DAUER_OPTIONS,
 } from '../constants';
-import {
-  getRandomItem,
-  getRandomPercentage,
-  getRandomSUD,
-  getRandomBoolean,
-  getRandomBooleanOrNull,
-  SAMPLE_CIPOS_INDIKATOREN,
-  SAMPLE_CIPOS_BEOBACHTUNGEN,
-  SAMPLE_CIPOS_DAUER_SETS,
-  SAMPLE_CIPOS_ZIELERINNERUNG,
-  SAMPLE_CIPOS_RUECKMELDUNG_ERINNERUNG,
-  SAMPLE_CIPOS_RUECKMELDUNG_KOERPER,
-  SAMPLE_CIPOS_AUFGABE_TAGEBUCH,
-  SAMPLE_CIPOS_STABILISIERUNG,
-  SAMPLE_CIPOS_GESAMTEINSCHAETZUNG,
-  SAMPLE_CIPOS_NAECHSTE_SITZUNG,
-} from '../utils/testData';
 
 interface CIPOSProtocolEditorProps {
   protocol: CIPOSProtocol | null;
@@ -44,251 +22,10 @@ interface CIPOSProtocolEditorProps {
   onCancel: () => void;
 }
 
-// Checkbox Group Component
-interface CheckboxGroupProps<T extends string> {
-  options: { value: T; label: string }[];
-  selected: T[];
-  onChange: (selected: T[]) => void;
-  hasSonstiges?: boolean;
-  sonstigesValue?: string;
-  onSonstigesChange?: (value: string) => void;
-}
-
-function CheckboxGroup<T extends string>({
-  options,
-  selected,
-  onChange,
-  hasSonstiges = false,
-  sonstigesValue = '',
-  onSonstigesChange,
-}: CheckboxGroupProps<T>) {
-  const handleToggle = (value: T) => {
-    if (selected.includes(value)) {
-      onChange(selected.filter((v) => v !== value));
-    } else {
-      onChange([...selected, value]);
-    }
-  };
-
-  return (
-    <div className="space-y-2">
-      {options.map((option) => (
-        <label key={option.value} className="flex items-center gap-3 cursor-pointer group">
-          <input
-            type="checkbox"
-            checked={selected.includes(option.value)}
-            onChange={() => handleToggle(option.value)}
-            className="w-5 h-5 rounded border-muted bg-background text-brand-primary focus:ring-brand-primary focus:ring-offset-0"
-          />
-          <span className="text-on-surface group-hover:text-on-surface-strong transition-colors">
-            {option.label}
-          </span>
-        </label>
-      ))}
-      {hasSonstiges && selected.includes('sonstiges' as T) && (
-        <input
-          type="text"
-          value={sonstigesValue}
-          onChange={(e) => onSonstigesChange?.(e.target.value)}
-          placeholder="Bitte beschreiben..."
-          className="ml-8 w-full max-w-md bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
-        />
-      )}
-    </div>
-  );
-}
-
-// Percentage Slider Component
-interface PercentageSliderProps {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-  description?: string;
-  targetValue?: number;
-}
-
-const PercentageSlider: React.FC<PercentageSliderProps> = ({ 
-  label, 
-  value, 
-  onChange, 
-  description,
-  targetValue 
-}) => {
-  const isTargetMet = targetValue !== undefined && value >= targetValue;
-  
-  return (
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-on-surface">
-        {label}
-      </label>
-      {description && (
-        <p className="text-sm text-on-surface/70 italic">{description}</p>
-      )}
-      <div className="flex items-center gap-4">
-        <input
-          type="range"
-          min={0}
-          max={100}
-          value={value}
-          onChange={(e) => onChange(parseInt(e.target.value))}
-          className="flex-1 h-2 bg-surface rounded-lg appearance-none cursor-pointer accent-green-500"
-        />
-        <span className={`min-w-[4rem] text-center text-lg font-bold ${
-          isTargetMet ? 'text-green-400' : value >= 50 ? 'text-yellow-400' : 'text-red-400'
-        }`}>
-          {value}%
-        </span>
-      </div>
-      <div className="flex justify-between text-xs text-on-surface/50">
-        <span>0%</span>
-        {targetValue && (
-          <span className="text-green-400">Ziel: ≥{targetValue}%</span>
-        )}
-        <span>100%</span>
-      </div>
-    </div>
-  );
-};
-
-// SUD Slider Component
-interface SUDSliderProps {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-  description?: string;
-}
-
-const SUDSlider: React.FC<SUDSliderProps> = ({ label, value, onChange, description }) => {
-  return (
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-on-surface">
-        {label}
-      </label>
-      {description && (
-        <p className="text-sm text-on-surface/70 italic">{description}</p>
-      )}
-      <div className="flex items-center gap-4">
-        <input
-          type="range"
-          min={0}
-          max={10}
-          value={value}
-          onChange={(e) => onChange(parseInt(e.target.value))}
-          className="flex-1 h-2 bg-surface rounded-lg appearance-none cursor-pointer accent-green-500"
-        />
-        <span className={`min-w-[3rem] text-center text-lg font-bold ${
-          value <= 3 ? 'text-green-400' : value <= 6 ? 'text-yellow-400' : 'text-red-400'
-        }`}>
-          {value}
-        </span>
-      </div>
-      <div className="flex justify-between text-xs text-on-surface/50">
-        <span>0 = keine Belastung</span>
-        <span>10 = max. Belastung</span>
-      </div>
-    </div>
-  );
-};
-
-// Yes/No/Null Toggle Component
-interface YesNoToggleProps {
-  label: string;
-  value: boolean | null;
-  onChange: (value: boolean | null) => void;
-}
-
-const YesNoToggle: React.FC<YesNoToggleProps> = ({ label, value, onChange }) => {
-  return (
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-on-surface">{label}</label>
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => onChange(true)}
-          className={`px-4 py-2 rounded-lg font-medium transition-all ${
-            value === true
-              ? 'bg-green-500 text-white'
-              : 'bg-surface text-on-surface hover:bg-green-500/20'
-          }`}
-        >
-          Ja
-        </button>
-        <button
-          type="button"
-          onClick={() => onChange(false)}
-          className={`px-4 py-2 rounded-lg font-medium transition-all ${
-            value === false
-              ? 'bg-red-500 text-white'
-              : 'bg-surface text-on-surface hover:bg-red-500/20'
-          }`}
-        >
-          Nein
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// Test Button Component
-interface TestButtonProps {
-  onClick: () => void;
-  title?: string;
-}
-
-const TestButton: React.FC<TestButtonProps> = ({ onClick, title = 'Testdaten einfügen' }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
-    title={title}
-  >
-    <SparklesIcon />
-    Testdaten
-  </button>
-);
-
-// Section Header Component
-interface SectionHeaderProps {
-  number: number | string;
-  title: string;
-  subtitle?: string;
-  onTestData?: () => void;
-}
-
-const SectionHeader: React.FC<SectionHeaderProps> = ({ number, title, subtitle, onTestData }) => (
-  <div className="flex items-start justify-between mb-4">
-    <div className="flex items-start gap-3">
-      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-green-600 text-white font-bold text-sm flex-shrink-0">
-        {number}
-      </span>
-      <div>
-        <h2 className="text-lg font-bold text-on-surface-strong">{title}</h2>
-        {subtitle && <p className="text-sm text-on-surface/70">{subtitle}</p>}
-      </div>
-    </div>
-    {onTestData && <TestButton onClick={onTestData} />}
-  </div>
-);
-
-// Subsection Header Component
-interface SubsectionHeaderProps {
-  number: string;
-  title: string;
-}
-
-const SubsectionHeader: React.FC<SubsectionHeaderProps> = ({ number, title }) => (
-  <div className="flex items-center gap-2 mb-3 mt-6">
-    <span className="text-sm font-bold text-green-400">{number}</span>
-    <h3 className="text-md font-semibold text-on-surface">{title}</h3>
-  </div>
-);
-
 export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protocol, onSave, onCancel }) => {
   const [editedProtocol, setEditedProtocol] = useState<Partial<CIPOSProtocol>>({});
   const [errors, setErrors] = useState<{ [key: string]: boolean }>({});
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const [expandedDurchgang, setExpandedDurchgang] = useState<number | null>(null);
-  const [showDurchgangTestMenu, setShowDurchgangTestMenu] = useState(false);
 
   // Initialize or reset form when protocol changes
   useEffect(() => {
@@ -339,89 +76,35 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
   }, [protocol]);
 
   const handleMetadataChange = (metadata: Partial<CIPOSProtocol>) => {
-    // If switching to a different protocol type, convert the protocol
-    if (metadata.protocolType && metadata.protocolType !== 'CIPOS') {
-      if (metadata.protocolType === 'IRI') {
-        // Convert to IRI protocol
-        const iriProtocol = {
-          id: editedProtocol.id || crypto.randomUUID(),
-          chiffre: metadata.chiffre || editedProtocol.chiffre || '',
-          datum: metadata.datum || editedProtocol.datum || new Date().toISOString().split('T')[0],
-          protokollnummer: metadata.protokollnummer || editedProtocol.protokollnummer || '',
-          protocolType: 'IRI' as const,
-          createdAt: editedProtocol.createdAt || Date.now(),
-          lastModified: Date.now(),
-          indikation: {
-            indikation_checklist: [],
-            ausgangszustand_beschreibung: '',
-            ziel_der_iri: '',
-          },
-          positiver_moment: {
-            positiver_moment_beschreibung: '',
-            kontext_positiver_moment: '',
-            wahrgenommene_positive_veraenderung: '',
-          },
-          koerperwahrnehmung: {
-            koerperwahrnehmung_rohtext: '',
-            koerperlokalisation: [],
-            qualitaet_koerperempfindung: [],
-          },
-          bilaterale_stimulation: {
-            stimulation_typ: 'visuell' as const,
-            sets: [],
-          },
-          ressourcen_einschaetzung: {},
-          abschluss: {
-            einwilligung_dokumentation: false,
-          },
-        };
-        setEditedProtocol(iriProtocol as unknown as Partial<CIPOSProtocol>);
-      } else {
-        // Convert to Standard protocol (Reprozessieren, Sicherer Ort, Custom)
-        const standardProtocol = {
-          id: editedProtocol.id || crypto.randomUUID(),
-          chiffre: metadata.chiffre || editedProtocol.chiffre || '',
-          datum: metadata.datum || editedProtocol.datum || new Date().toISOString().split('T')[0],
-          protokollnummer: metadata.protokollnummer || editedProtocol.protokollnummer || '',
-          protocolType: metadata.protocolType,
-          createdAt: editedProtocol.createdAt || Date.now(),
-          lastModified: Date.now(),
-          startKnoten: '',
-          channel: [],
-        };
-        setEditedProtocol(standardProtocol as unknown as Partial<CIPOSProtocol>);
-      }
-      return;
-    }
-
     setEditedProtocol({
       ...editedProtocol,
       ...metadata,
     });
   };
 
-  // Update nested fields helper
-  const updateField = <K extends keyof CIPOSProtocol>(
-    section: K,
+  // Helper to update nested fields
+  const updateNestedField = <T extends keyof CIPOSProtocol>(
+    section: T,
     field: string,
     value: unknown
   ) => {
-    setEditedProtocol((prev) => ({
-      ...prev,
+    setEditedProtocol({
+      ...editedProtocol,
       [section]: {
-        ...(prev[section] as object),
+        ...(editedProtocol[section] as object),
         [field]: value,
       },
-    }));
+    });
   };
 
-  // Add a new Durchgang
+  // Add new durchgang
   const addDurchgang = () => {
     const currentDurchgaenge = editedProtocol.durchgaenge || [];
+    if (currentDurchgaenge.length >= 3) return; // Max 3 Durchgänge
+
     const newDurchgang: CIPOSDurchgang = {
       id: crypto.randomUUID(),
       durchgang_nummer: currentDurchgaenge.length + 1,
-      bereitschaft_patient: null,
       zaehl_technik: null,
       dauer_sekunden: editedProtocol.erster_kontakt?.belastungsdauer_sekunden || 5,
       reorientierung_methoden: [],
@@ -431,95 +114,44 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
       ...editedProtocol,
       durchgaenge: [...currentDurchgaenge, newDurchgang],
     });
-    setExpandedDurchgang(currentDurchgaenge.length);
   };
 
-  // Remove a Durchgang
+  // Remove durchgang
   const removeDurchgang = (id: string) => {
     const currentDurchgaenge = editedProtocol.durchgaenge || [];
-    const filtered = currentDurchgaenge.filter((d) => d.id !== id);
-    const renumbered = filtered.map((d, i) => ({ ...d, durchgang_nummer: i + 1 }));
+    const newDurchgaenge = currentDurchgaenge
+      .filter((d) => d.id !== id)
+      .map((d, index) => ({ ...d, durchgang_nummer: index + 1 }));
     setEditedProtocol({
       ...editedProtocol,
-      durchgaenge: renumbered,
+      durchgaenge: newDurchgaenge,
     });
   };
 
-  // Update a Durchgang
+  // Update durchgang field
   const updateDurchgang = (id: string, field: keyof CIPOSDurchgang, value: unknown) => {
     const currentDurchgaenge = editedProtocol.durchgaenge || [];
-    const updated = currentDurchgaenge.map((d) =>
+    const newDurchgaenge = currentDurchgaenge.map((d) =>
       d.id === id ? { ...d, [field]: value } : d
     );
     setEditedProtocol({
       ...editedProtocol,
-      durchgaenge: updated,
+      durchgaenge: newDurchgaenge,
     });
   };
 
-  // Get human-readable list of missing fields
-  const getMissingFields = (): string[] => {
-    const missing: string[] = [];
+  // Toggle reorientierung methode
+  const toggleReorientierungMethode = (durchgangId: string, methode: ReorientierungsMethode) => {
+    const currentDurchgaenge = editedProtocol.durchgaenge || [];
+    const durchgang = currentDurchgaenge.find((d) => d.id === durchgangId);
+    if (!durchgang) return;
 
-    // Metadata
-    if (!editedProtocol.chiffre?.trim()) missing.push('Patient:innen-Chiffre');
-    if (!editedProtocol.datum) missing.push('Datum');
-    if (!editedProtocol.protokollnummer?.trim()) missing.push('Protokollnummer');
-
-    // Section 2: Gegenwartsorientierung vorher
-    if (!editedProtocol.gegenwartsorientierung_vorher?.indikatoren_patient?.trim()) {
-      missing.push('Indikatoren der Patient:in (Sektion 2)');
-    }
-
-    // Section 3: Verstärkung der sicheren Gegenwart
-    if (!editedProtocol.verstaerkung_gegenwart?.dauer_anzahl_sets?.trim()) {
-      missing.push('Dauer/Anzahl Sets (Sektion 3)');
-    }
-    if (editedProtocol.verstaerkung_gegenwart?.reaktion_verbesserung === null) {
-      missing.push('Reaktion/Verbesserung wahrgenommen? (Sektion 3)');
-    }
-
-    // Section 4: Erster Kontakt
-    if (!editedProtocol.erster_kontakt?.zielerinnerung_beschreibung?.trim()) {
-      missing.push('Beschreibung der Zielerinnerung (Sektion 4)');
-    }
-
-    // Durchgänge
-    if (!editedProtocol.durchgaenge || editedProtocol.durchgaenge.length === 0) {
-      missing.push('Mindestens ein Durchgang');
-    } else {
-      editedProtocol.durchgaenge.forEach((durchgang, index) => {
-        if (durchgang.zaehl_technik === null) {
-          missing.push(`Durchgang ${durchgang.durchgang_nummer}: Zähltechnik angewendet?`);
-        }
-        if (!durchgang.reorientierung_methoden || durchgang.reorientierung_methoden.length === 0) {
-          missing.push(`Durchgang ${durchgang.durchgang_nummer}: Reorientierungsmethoden`);
-        }
-      });
-    }
-
-    // Section 7: Abschlussbewertung
-    if (!editedProtocol.abschlussbewertung?.rueckmeldung_erinnerung?.trim()) {
-      missing.push('Rückmeldung zur Erinnerung (Sektion 7)');
-    }
-
-    // Section 8: Nachbesprechung
-    if (editedProtocol.nachbesprechung?.nachbesprechung_durchgefuehrt === null) {
-      missing.push('Nachbesprechung durchgeführt? (Sektion 8)');
-    }
-    if (editedProtocol.nachbesprechung?.hinweis_inneres_prozessieren === null) {
-      missing.push('Hinweis auf inneres Prozessieren gegeben? (Sektion 8)');
-    }
-
-    // Section 9: Schwierigkeiten
-    if (editedProtocol.schwierigkeiten?.probleme_reorientierung === null) {
-      missing.push('Probleme bei der Reorientierung? (Sektion 9)');
-    }
-    if (editedProtocol.schwierigkeiten?.cipos_vorzeitig_beendet === null) {
-      missing.push('CIPOS vorzeitig beendet? (Sektion 9)');
-    }
-
-    return missing;
+    const currentMethoden = durchgang.reorientierung_methoden || [];
+    const newMethoden = currentMethoden.includes(methode)
+      ? currentMethoden.filter((m) => m !== methode)
+      : [...currentMethoden, methode];
+    
+    updateDurchgang(durchgangId, 'reorientierung_methoden', newMethoden);
   };
 
   const validateProtocol = (): boolean => {
@@ -532,8 +164,6 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
-  const missingFields = getMissingFields();
 
   const handleSave = () => {
     if (!validateProtocol()) {
@@ -555,7 +185,7 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
         gegenwartsorientierung_vorher: editedProtocol.gegenwartsorientierung_vorher!,
         verstaerkung_gegenwart: editedProtocol.verstaerkung_gegenwart!,
         erster_kontakt: editedProtocol.erster_kontakt!,
-        durchgaenge: editedProtocol.durchgaenge || [],
+        durchgaenge: editedProtocol.durchgaenge!,
         abschlussbewertung: editedProtocol.abschlussbewertung!,
         nachbesprechung: editedProtocol.nachbesprechung!,
         schwierigkeiten: editedProtocol.schwierigkeiten!,
@@ -596,840 +226,649 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
 
   const hasUnsavedChanges = saveStatus !== 'saved';
 
-  // Calculate SUD change
-  const sudVorher = editedProtocol.erster_kontakt?.sud_vor_kontakt;
-  const sudNachher = editedProtocol.abschlussbewertung?.sud_nach_letztem_durchgang;
-  const sudChange = sudVorher !== undefined && sudNachher !== undefined 
-    ? sudNachher - sudVorher 
-    : null;
-
-  // Test data functions for each section
-  const fillTestDataSection2 = () => {
-    setEditedProtocol((prev) => ({
-      ...prev,
-      gegenwartsorientierung_vorher: {
-        ...prev.gegenwartsorientierung_vorher,
-        prozent_gegenwartsorientierung: getRandomPercentage(40, 75),
-        indikatoren_patient: getRandomItem(SAMPLE_CIPOS_INDIKATOREN),
-        beobachtungen_therapeut: getRandomItem(SAMPLE_CIPOS_BEOBACHTUNGEN),
-      },
-    }));
+  // Helper for percentage color
+  const getPercentageColor = (value: number) => {
+    if (value >= 70) return 'text-green-400';
+    if (value >= 50) return 'text-yellow-400';
+    return 'text-red-400';
   };
 
-  const fillTestDataSection3 = () => {
-    const methoden: CIPOSStimulationMethode[] = ['visuell', 'taktil', 'auditiv', 'kombination'];
-    setEditedProtocol((prev) => ({
-      ...prev,
-      verstaerkung_gegenwart: {
-        ...prev.verstaerkung_gegenwart,
-        stimulation_methode: getRandomItem(methoden),
-        dauer_anzahl_sets: getRandomItem(SAMPLE_CIPOS_DAUER_SETS),
-        reaktion_verbesserung: getRandomBoolean(),
-        gegenwartsorientierung_nach_stimulation: getRandomPercentage(65, 90),
-        kommentar: getRandomItem(SAMPLE_CIPOS_BEOBACHTUNGEN),
-      },
-    }));
+  // Helper for SUD color
+  const getSUDColor = (value: number) => {
+    if (value <= 3) return 'text-green-400';
+    if (value <= 6) return 'text-yellow-400';
+    return 'text-red-400';
   };
-
-  const fillTestDataSection4 = () => {
-    setEditedProtocol((prev) => ({
-      ...prev,
-      erster_kontakt: {
-        ...prev.erster_kontakt,
-        zielerinnerung_beschreibung: getRandomItem(SAMPLE_CIPOS_ZIELERINNERUNG),
-        sud_vor_kontakt: getRandomSUD(5, 9),
-        belastungsdauer_sekunden: getRandomItem(CIPOS_DAUER_OPTIONS),
-      },
-    }));
-  };
-
-  const fillTestDataSection7 = () => {
-    setEditedProtocol((prev) => ({
-      ...prev,
-      abschlussbewertung: {
-        ...prev.abschlussbewertung,
-        sud_nach_letztem_durchgang: getRandomSUD(1, 5),
-        rueckmeldung_erinnerung: getRandomItem(SAMPLE_CIPOS_RUECKMELDUNG_ERINNERUNG),
-        rueckmeldung_koerper: getRandomItem(SAMPLE_CIPOS_RUECKMELDUNG_KOERPER),
-        subjektive_sicherheit: getRandomPercentage(60, 90),
-      },
-    }));
-  };
-
-  const fillTestDataSection8 = () => {
-    setEditedProtocol((prev) => ({
-      ...prev,
-      nachbesprechung: {
-        ...prev.nachbesprechung,
-        nachbesprechung_durchgefuehrt: true,
-        hinweis_inneres_prozessieren: getRandomBoolean(),
-        aufgabe_tagebuch: getRandomItem(SAMPLE_CIPOS_AUFGABE_TAGEBUCH),
-        beobachtungen_therapeut: getRandomItem(SAMPLE_CIPOS_BEOBACHTUNGEN),
-      },
-    }));
-  };
-
-  const fillTestDataSection9 = () => {
-    const hasProblems = getRandomBoolean();
-    const wasEnded = !hasProblems && getRandomBoolean();
-    setEditedProtocol((prev) => ({
-      ...prev,
-      schwierigkeiten: {
-        ...prev.schwierigkeiten,
-        probleme_reorientierung: hasProblems,
-        stabilisierungstechniken: hasProblems ? getRandomItem(SAMPLE_CIPOS_STABILISIERUNG) : '',
-        cipos_vorzeitig_beendet: wasEnded,
-        cipos_vorzeitig_grund: wasEnded ? 'Patient:in nicht ausreichend stabilisierbar.' : '',
-      },
-    }));
-  };
-
-  const fillTestDataSection10 = () => {
-    setEditedProtocol((prev) => ({
-      ...prev,
-      abschluss_dokumentation: {
-        ...prev.abschluss_dokumentation,
-        gesamteinschaetzung_therapeut: getRandomItem(SAMPLE_CIPOS_GESAMTEINSCHAETZUNG),
-        planung_naechste_sitzung: getRandomItem(SAMPLE_CIPOS_NAECHSTE_SITZUNG),
-        signatur_therapeut: `Dr. Muster, ${new Date().toLocaleDateString('de-DE')}`,
-      },
-    }));
-  };
-
-  // Generate a single test durchgang
-  const generateTestDurchgang = (nummer: number): CIPOSDurchgang => {
-    const reorientierungMethoden: ReorientierungsMethode[] = [
-      'gegenstaende_benennen', 
-      'orientierung_raum', 
-      'blickkontakt', 
-      'atemuebung', 
-      'koerperwahrnehmung',
-      'fuesse_boden',
-      'fuenf_vier_drei_zwei_eins',
-      'selbstberuehrung'
-    ];
-    const randomMethoden = reorientierungMethoden.filter(() => Math.random() > 0.6);
-    if (randomMethoden.length === 0) randomMethoden.push('blickkontakt', 'atemuebung');
-    
-    return {
-      id: crypto.randomUUID(),
-      durchgang_nummer: nummer,
-      bereitschaft_patient: nummer > 1 ? true : null,
-      zaehl_technik: getRandomBoolean(),
-      dauer_sekunden: getRandomItem(CIPOS_DAUER_OPTIONS),
-      reorientierung_methoden: randomMethoden,
-      gegenwartsorientierung_nach: getRandomPercentage(65, 95),
-      stimulation_verstaerkung: nummer === 1 ? getRandomBooleanOrNull() : undefined,
-      kommentar: getRandomItem(SAMPLE_CIPOS_BEOBACHTUNGEN),
-    };
-  };
-
-  // Fill durchgänge with test data
-  const fillDurchgaengeWithTestData = (count: number) => {
-    const newDurchgaenge = Array.from({ length: count }, (_, i) => generateTestDurchgang(i + 1));
-    setEditedProtocol((prev) => ({
-      ...prev,
-      durchgaenge: newDurchgaenge,
-    }));
-    setExpandedDurchgang(null);
-    setShowDurchgangTestMenu(false);
-  };
-
-  // Close dropdown menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (showDurchgangTestMenu) {
-        const target = event.target as HTMLElement;
-        if (!target.closest('.durchgang-test-dropdown')) {
-          setShowDurchgangTestMenu(false);
-        }
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showDurchgangTestMenu]);
-
-  // If the protocol type has changed to IRI, render IRI editor
-  if (editedProtocol.protocolType === 'IRI') {
-    return (
-      <Suspense fallback={<div className="p-8 text-center text-on-surface">Lade IRI-Editor...</div>}>
-        <IRIProtocolEditor
-          protocol={editedProtocol as unknown as IRIProtocol}
-          onSave={onSave}
-          onCancel={onCancel}
-        />
-      </Suspense>
-    );
-  }
-
-  // If the protocol type has changed to a Standard type, render a simplified standard form
-  // that will save and the parent ProtocolEditor will handle the switch
-  if (editedProtocol.protocolType && editedProtocol.protocolType !== 'CIPOS' && editedProtocol.protocolType !== 'IRI') {
-    // Save the converted protocol and notify parent
-    const standardProtocol = editedProtocol as unknown as StandardProtocol;
-    saveProtocol(standardProtocol);
-    setTimeout(() => onSave(), 100);
-    return (
-      <div className="p-8 text-center text-on-surface">
-        <p className="text-lg">Protokolltyp wird geändert zu <strong>{editedProtocol.protocolType}</strong>...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
-      {/* Section 1: Metadata */}
+      {/* Metadata Section */}
       <MetadataForm
         metadata={editedProtocol}
         onChange={handleMetadataChange}
         errors={errors}
       />
 
-      {/* Section 2: Einschätzung der Gegenwartsorientierung (vor Beginn) */}
-      <Card className="mb-6">
-        <SectionHeader 
-          number={2} 
-          title="Einschätzung der Gegenwartsorientierung" 
-          subtitle="vor Beginn"
-          onTestData={fillTestDataSection2}
-        />
+      {/* Section 2: Gegenwartsorientierung vor Beginn */}
+      <Card className="mb-6 border-l-4 border-green-500">
+        <h2 className="text-lg font-bold text-green-400 mb-4">2. Einschätzung der Gegenwartsorientierung (vor Beginn)</h2>
         
-        <div className="space-y-6">
-          <PercentageSlider
-            label="Prozentuale Gegenwartsorientierung"
-            description={'"Zu wie viel Prozent sind Sie in der Gegenwart?"'}
-            value={editedProtocol.gegenwartsorientierung_vorher?.prozent_gegenwartsorientierung || 50}
-            onChange={(value) => updateField('gegenwartsorientierung_vorher', 'prozent_gegenwartsorientierung', value)}
-            targetValue={70}
-          />
-
-          <div>
-            <label className="block text-sm font-medium text-on-surface mb-2">
-              Indikatoren / Woran Patient:in das merkt
-            </label>
-            <textarea
-              value={editedProtocol.gegenwartsorientierung_vorher?.indikatoren_patient || ''}
-              onChange={(e) => updateField('gegenwartsorientierung_vorher', 'indikatoren_patient', e.target.value)}
-              className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none resize-y min-h-[100px]"
-              placeholder="Beschreibung der Patient:in..."
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-on-surface mb-2">
+            Gegenwartsorientierung (%)
+          </label>
+          <div className="flex items-center gap-4">
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              value={editedProtocol.gegenwartsorientierung_vorher?.prozent_gegenwartsorientierung ?? 50}
+              onChange={(e) => updateNestedField('gegenwartsorientierung_vorher', 'prozent_gegenwartsorientierung', parseInt(e.target.value))}
+              className="flex-1 accent-green-500"
             />
+            <span className={`text-2xl font-bold w-16 text-center ${getPercentageColor(editedProtocol.gegenwartsorientierung_vorher?.prozent_gegenwartsorientierung ?? 50)}`}>
+              {editedProtocol.gegenwartsorientierung_vorher?.prozent_gegenwartsorientierung ?? 50}%
+            </span>
+          </div>
+          <p className="text-xs text-muted mt-1">Ziel: ≥70% vor Beginn der Belastungskonfrontation</p>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-on-surface mb-2">Indikatoren (Patient:in)</label>
+          <textarea
+            value={editedProtocol.gegenwartsorientierung_vorher?.indikatoren_patient || ''}
+            onChange={(e) => updateNestedField('gegenwartsorientierung_vorher', 'indikatoren_patient', e.target.value)}
+            className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none resize-y min-h-[80px]"
+            placeholder="Woran merkt die Patient:in, dass sie gegenwartsorientiert ist?"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-on-surface mb-2">Beobachtungen (Therapeut:in)</label>
+          <textarea
+            value={editedProtocol.gegenwartsorientierung_vorher?.beobachtungen_therapeut || ''}
+            onChange={(e) => updateNestedField('gegenwartsorientierung_vorher', 'beobachtungen_therapeut', e.target.value)}
+            className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none resize-y min-h-[60px]"
+            placeholder="Beobachtungen zur Gegenwartsorientierung..."
+          />
+        </div>
+      </Card>
+
+      {/* Section 3: Verstärkung der sicheren Gegenwart */}
+      <Card className="mb-6 border-l-4 border-green-500">
+        <h2 className="text-lg font-bold text-green-400 mb-4">3. Verstärkung der sicheren Gegenwart – Durchführung</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <Select
+            label="Art der Stimulation"
+            value={editedProtocol.verstaerkung_gegenwart?.stimulation_methode || 'visuell'}
+            onChange={(e) => updateNestedField('verstaerkung_gegenwart', 'stimulation_methode', e.target.value)}
+          >
+            {CIPOS_STIMULATION_METHODE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </Select>
+          
+          {editedProtocol.verstaerkung_gegenwart?.stimulation_methode === 'kombination' && (
+            <Input
+              label="Beschreibung der Kombination"
+              value={editedProtocol.verstaerkung_gegenwart?.stimulation_methode_sonstiges || ''}
+              onChange={(e) => updateNestedField('verstaerkung_gegenwart', 'stimulation_methode_sonstiges', e.target.value)}
+              placeholder="Welche Kombination?"
+            />
+          )}
+        </div>
+
+        <div className="mb-4">
+          <Input
+            label="Dauer / Anzahl kurzer Sets"
+            value={editedProtocol.verstaerkung_gegenwart?.dauer_anzahl_sets || ''}
+            onChange={(e) => updateNestedField('verstaerkung_gegenwart', 'dauer_anzahl_sets', e.target.value)}
+            placeholder="z.B. 5 Sets à 10 Bewegungen"
+          />
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-on-surface mb-2">Reaktion / Verbesserung wahrgenommen?</label>
+          <div className="flex gap-4">
+            {[
+              { value: true, label: 'Ja' },
+              { value: false, label: 'Nein' },
+            ].map((option) => (
+              <label key={String(option.value)} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="reaktion_verbesserung"
+                  checked={editedProtocol.verstaerkung_gegenwart?.reaktion_verbesserung === option.value}
+                  onChange={() => updateNestedField('verstaerkung_gegenwart', 'reaktion_verbesserung', option.value)}
+                  className="w-4 h-4 text-green-500 focus:ring-green-500"
+                />
+                <span className="text-on-surface">{option.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-on-surface mb-2">
+            Gegenwartsorientierung nach Stimulation (%)
+          </label>
+          <div className="flex items-center gap-4">
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              value={editedProtocol.verstaerkung_gegenwart?.gegenwartsorientierung_nach_stimulation ?? 50}
+              onChange={(e) => updateNestedField('verstaerkung_gegenwart', 'gegenwartsorientierung_nach_stimulation', parseInt(e.target.value))}
+              className="flex-1 accent-green-500"
+            />
+            <span className={`text-2xl font-bold w-16 text-center ${getPercentageColor(editedProtocol.verstaerkung_gegenwart?.gegenwartsorientierung_nach_stimulation ?? 50)}`}>
+              {editedProtocol.verstaerkung_gegenwart?.gegenwartsorientierung_nach_stimulation ?? 50}%
+            </span>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-on-surface mb-2">Kommentar / Beobachtungen</label>
+          <textarea
+            value={editedProtocol.verstaerkung_gegenwart?.kommentar || ''}
+            onChange={(e) => updateNestedField('verstaerkung_gegenwart', 'kommentar', e.target.value)}
+            className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none resize-y min-h-[60px]"
+            placeholder="Weitere Beobachtungen..."
+          />
+        </div>
+      </Card>
+
+      {/* Section 4: Erster Kontakt */}
+      <Card className="mb-6 border-l-4 border-green-500">
+        <h2 className="text-lg font-bold text-green-400 mb-4">4. Erster Kontakt mit der belastenden Erinnerung</h2>
+        
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-on-surface mb-2">4.1 Beschreibung der Zielerinnerung / Auslöser</label>
+          <textarea
+            value={editedProtocol.erster_kontakt?.zielerinnerung_beschreibung || ''}
+            onChange={(e) => updateNestedField('erster_kontakt', 'zielerinnerung_beschreibung', e.target.value)}
+            className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none resize-y min-h-[100px]"
+            placeholder="Welche belastende Erinnerung wird bearbeitet?"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-on-surface mb-2">4.2 SUD vor dem 1. Durchgang (0-10)</label>
+            <div className="flex items-center gap-4">
+              <input
+                type="range"
+                min="0"
+                max="10"
+                value={editedProtocol.erster_kontakt?.sud_vor_kontakt ?? 5}
+                onChange={(e) => updateNestedField('erster_kontakt', 'sud_vor_kontakt', parseInt(e.target.value))}
+                className="flex-1 accent-green-500"
+              />
+              <span className={`text-2xl font-bold w-12 text-center ${getSUDColor(editedProtocol.erster_kontakt?.sud_vor_kontakt ?? 5)}`}>
+                {editedProtocol.erster_kontakt?.sud_vor_kontakt ?? 5}
+              </span>
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-on-surface mb-2">
-              Beobachtungen der Therapeut:in <span className="text-on-surface/50">(optional)</span>
-            </label>
-            <textarea
-              value={editedProtocol.gegenwartsorientierung_vorher?.beobachtungen_therapeut || ''}
-              onChange={(e) => updateField('gegenwartsorientierung_vorher', 'beobachtungen_therapeut', e.target.value)}
-              className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none resize-y min-h-[80px]"
-              placeholder="Eigene Beobachtungen..."
-            />
+            <label className="block text-sm font-medium text-on-surface mb-2">4.3 Belastungsdauer (Sekunden)</label>
+            <Select
+              value={String(editedProtocol.erster_kontakt?.belastungsdauer_sekunden || 5)}
+              onChange={(e) => updateNestedField('erster_kontakt', 'belastungsdauer_sekunden', parseInt(e.target.value))}
+            >
+              {CIPOS_DAUER_OPTIONS.map((val) => (
+                <option key={val} value={val}>{val} Sekunden</option>
+              ))}
+            </Select>
           </div>
         </div>
       </Card>
 
-      {/* Section 3: Verstärkung der sicheren Gegenwart – Durchführung */}
-      <Card className="mb-6">
-        <SectionHeader 
-          number={3} 
-          title="Verstärkung der sicheren Gegenwart" 
-          subtitle="Durchführung"
-          onTestData={fillTestDataSection3}
-        />
-        
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-on-surface mb-2">
-                Art der Stimulation
-              </label>
-              <select
-                value={editedProtocol.verstaerkung_gegenwart?.stimulation_methode || 'visuell'}
-                onChange={(e) => updateField('verstaerkung_gegenwart', 'stimulation_methode', e.target.value as CIPOSStimulationMethode)}
-                className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
+      {/* Durchgänge */}
+      <Card className="mb-6 border-l-4 border-green-500">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-green-400">Durchgänge</h2>
+          <Button 
+            onClick={addDurchgang} 
+            variant="secondary" 
+            className="!py-1 !px-3"
+            disabled={(editedProtocol.durchgaenge?.length || 0) >= 3}
+          >
+            <PlusIcon />
+            Durchgang hinzufügen
+          </Button>
+        </div>
+
+        {editedProtocol.durchgaenge?.map((durchgang) => (
+          <div key={durchgang.id} className="border border-muted rounded-lg p-4 mb-4 bg-surface-alt">
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-semibold text-green-400">
+                {durchgang.durchgang_nummer === 1 ? '1. Durchgang (4.4/4.5)' : 
+                 durchgang.durchgang_nummer === 2 ? '2. Durchgang (5)' : '3. Durchgang (6)'}
+              </span>
+              <button
+                onClick={() => removeDurchgang(durchgang.id)}
+                className="text-red-400 hover:text-red-300 p-1"
+                title="Durchgang entfernen"
               >
-                {CIPOS_STIMULATION_METHODE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+                <TrashIcon />
+              </button>
             </div>
-            
-            {editedProtocol.verstaerkung_gegenwart?.stimulation_methode === 'kombination' && (
-              <div>
-                <label className="block text-sm font-medium text-on-surface mb-2">
-                  Beschreibung Kombination/Sonstiges
-                </label>
-                <input
-                  type="text"
-                  value={editedProtocol.verstaerkung_gegenwart?.stimulation_methode_sonstiges || ''}
-                  onChange={(e) => updateField('verstaerkung_gegenwart', 'stimulation_methode_sonstiges', e.target.value)}
-                  className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
-                  placeholder="Bitte beschreiben..."
+
+            {/* Bereitschaft (für Durchgänge 2 und 3) */}
+            {durchgang.durchgang_nummer > 1 && (
+              <div className="mb-4 p-3 bg-background rounded-lg">
+                <label className="block text-sm font-medium text-on-surface mb-2">Bereitschaft der Patient:in?</label>
+                <div className="flex gap-4 mb-2">
+                  {[
+                    { value: true, label: 'Ja' },
+                    { value: false, label: 'Nein' },
+                  ].map((option) => (
+                    <label key={String(option.value)} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`bereitschaft_${durchgang.id}`}
+                        checked={durchgang.bereitschaft_patient === option.value}
+                        onChange={() => updateDurchgang(durchgang.id, 'bereitschaft_patient', option.value)}
+                        className="w-4 h-4 text-green-500 focus:ring-green-500"
+                      />
+                      <span className="text-on-surface">{option.label}</span>
+                    </label>
+                  ))}
+                </div>
+                <Input
+                  placeholder="Kommentar zur Bereitschaft..."
+                  value={durchgang.bereitschaft_kommentar || ''}
+                  onChange={(e) => updateDurchgang(durchgang.id, 'bereitschaft_kommentar', e.target.value)}
                 />
               </div>
             )}
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-on-surface mb-2">
-              Dauer / Anzahl kurzer Sets
-            </label>
-            <input
-              type="text"
-              value={editedProtocol.verstaerkung_gegenwart?.dauer_anzahl_sets || ''}
-              onChange={(e) => updateField('verstaerkung_gegenwart', 'dauer_anzahl_sets', e.target.value)}
-              className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
-              placeholder="z.B. 5 kurze Sets à 15 Sekunden"
-            />
-          </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-on-surface mb-2">Zähltechnik angewendet?</label>
+                <div className="flex gap-4">
+                  {[
+                    { value: true, label: 'Ja' },
+                    { value: false, label: 'Nein' },
+                  ].map((option) => (
+                    <label key={String(option.value)} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`zaehl_technik_${durchgang.id}`}
+                        checked={durchgang.zaehl_technik === option.value}
+                        onChange={() => updateDurchgang(durchgang.id, 'zaehl_technik', option.value)}
+                        className="w-4 h-4 text-green-500 focus:ring-green-500"
+                      />
+                      <span className="text-on-surface">{option.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
 
-          <YesNoToggle
-            label="Reaktion / Verbesserung wahrgenommen?"
-            value={editedProtocol.verstaerkung_gegenwart?.reaktion_verbesserung ?? null}
-            onChange={(value) => updateField('verstaerkung_gegenwart', 'reaktion_verbesserung', value)}
-          />
+              <Select
+                label="Dauer (Sekunden)"
+                value={String(durchgang.dauer_sekunden)}
+                onChange={(e) => updateDurchgang(durchgang.id, 'dauer_sekunden', parseInt(e.target.value))}
+              >
+                {CIPOS_DAUER_OPTIONS.map((val) => (
+                  <option key={val} value={val}>{val} Sekunden</option>
+                ))}
+              </Select>
+            </div>
 
-          <PercentageSlider
-            label="Gegenwartsorientierung nach Stimulation"
-            description="Ziel: ≥ 70%"
-            value={editedProtocol.verstaerkung_gegenwart?.gegenwartsorientierung_nach_stimulation || 50}
-            onChange={(value) => updateField('verstaerkung_gegenwart', 'gegenwartsorientierung_nach_stimulation', value)}
-            targetValue={70}
-          />
+            {/* Reorientierungsmethoden */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-on-surface mb-2">Reorientierungsmethoden</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[200px] overflow-y-auto p-2 border border-muted rounded-lg">
+                {CIPOS_REORIENTIERUNG_OPTIONS.map((option) => (
+                  <label key={option.value} className="flex items-start gap-2 cursor-pointer p-1 rounded hover:bg-background">
+                    <input
+                      type="checkbox"
+                      checked={durchgang.reorientierung_methoden?.includes(option.value) || false}
+                      onChange={() => toggleReorientierungMethode(durchgang.id, option.value)}
+                      className="w-4 h-4 mt-0.5 rounded border-muted bg-background text-green-500 focus:ring-green-500"
+                    />
+                    <span className="text-sm text-on-surface">{option.label}</span>
+                  </label>
+                ))}
+              </div>
+              {durchgang.reorientierung_methoden?.includes('sonstiges') && (
+                <Input
+                  className="mt-2"
+                  placeholder="Sonstige Methode beschreiben..."
+                  value={durchgang.reorientierung_sonstiges || ''}
+                  onChange={(e) => updateDurchgang(durchgang.id, 'reorientierung_sonstiges', e.target.value)}
+                />
+              )}
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-on-surface mb-2">
-              Kommentar / Beobachtungen
-            </label>
-            <textarea
-              value={editedProtocol.verstaerkung_gegenwart?.kommentar || ''}
-              onChange={(e) => updateField('verstaerkung_gegenwart', 'kommentar', e.target.value)}
-              className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none resize-y min-h-[80px]"
-              placeholder="Weitere Beobachtungen..."
-            />
-          </div>
-        </div>
-      </Card>
+            {/* Eigene Reorientierungstechniken Freitext */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-on-surface mb-2">Eigene Reorientierungstechniken (Freitext)</label>
+              <textarea
+                value={durchgang.reorientierung_freitext || ''}
+                onChange={(e) => updateDurchgang(durchgang.id, 'reorientierung_freitext', e.target.value)}
+                className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none resize-y min-h-[60px] text-sm"
+                placeholder="Beschreiben Sie hier eigene oder individuelle Techniken..."
+              />
+            </div>
 
-      {/* Section 4: Erster Kontakt mit der belastenden Erinnerung */}
-      <Card className="mb-6">
-        <SectionHeader 
-          number={4} 
-          title="Erster Kontakt mit der belastenden Erinnerung"
-          onTestData={fillTestDataSection4}
-        />
-        
-        <div className="space-y-6">
-          <SubsectionHeader number="4.1" title="Beschreibung der Zielerinnerung / Auslöser" />
-          <div>
-            <textarea
-              value={editedProtocol.erster_kontakt?.zielerinnerung_beschreibung || ''}
-              onChange={(e) => updateField('erster_kontakt', 'zielerinnerung_beschreibung', e.target.value)}
-              className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none resize-y min-h-[100px]"
-              placeholder="Kurze Beschreibung der Erinnerung / Trigger / Zukunftsangst..."
-            />
-          </div>
+            {/* Gegenwartsorientierung nach Reorientierung */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-on-surface mb-2">
+                Gegenwartsorientierung nach Reorientierung (%)
+              </label>
+              <div className="flex items-center gap-4">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={durchgang.gegenwartsorientierung_nach}
+                  onChange={(e) => updateDurchgang(durchgang.id, 'gegenwartsorientierung_nach', parseInt(e.target.value))}
+                  className="flex-1 accent-green-500"
+                />
+                <span className={`text-2xl font-bold w-16 text-center ${getPercentageColor(durchgang.gegenwartsorientierung_nach)}`}>
+                  {durchgang.gegenwartsorientierung_nach}%
+                </span>
+              </div>
+            </div>
 
-          <SubsectionHeader number="4.2" title="SUD-Wert vor dem Kontakt" />
-          <SUDSlider
-            label="SUD vor dem 1. Durchgang"
-            value={editedProtocol.erster_kontakt?.sud_vor_kontakt || 5}
-            onChange={(value) => updateField('erster_kontakt', 'sud_vor_kontakt', value)}
-          />
-
-          <SubsectionHeader number="4.3" title="Festlegung der Belastungsdauer" />
-          <div>
-            <label className="block text-sm font-medium text-on-surface mb-2">
-              Gewählte Dauer für den Kontakt (Sekunden)
-            </label>
-            <select
-              value={editedProtocol.erster_kontakt?.belastungsdauer_sekunden || 5}
-              onChange={(e) => updateField('erster_kontakt', 'belastungsdauer_sekunden', parseInt(e.target.value))}
-              className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
-            >
-              {CIPOS_DAUER_OPTIONS.map((sec) => (
-                <option key={sec} value={sec}>
-                  {sec} Sekunden
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-on-surface/50 mt-1">Empfohlen: 3–10 Sekunden</p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Durchgänge (Sections 4.4/5/6) */}
-      <Card className="mb-6">
-        {/* Header with title and test data dropdown */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-          <div className="flex items-center gap-3">
-            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-green-600 text-white font-bold text-sm">
-              4-6
-            </span>
-            <h2 className="text-lg font-bold text-on-surface-strong">Durchgänge (Kontakt & Reorientierung)</h2>
-          </div>
-          <div className="relative durchgang-test-dropdown">
-            <button
-              type="button"
-              onClick={() => setShowDurchgangTestMenu(!showDurchgangTestMenu)}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
-              title="Durchgänge mit Testdaten füllen"
-            >
-              <SparklesIcon />
-              Testdaten einfügen
-              <svg className={`w-4 h-4 transition-transform ${showDurchgangTestMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {showDurchgangTestMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-surface border-2 border-brand-secondary/30 rounded-lg shadow-2xl z-50 animate-in slide-in-from-top-2 duration-200">
-                <div className="p-1">
-                  <button
-                    onClick={() => fillDurchgaengeWithTestData(5)}
-                    className="w-full text-left px-3 py-2 rounded hover:bg-background text-on-surface text-sm transition-colors"
-                  >
-                    5 Durchgänge erstellen
-                  </button>
-                  <button
-                    onClick={() => fillDurchgaengeWithTestData(10)}
-                    className="w-full text-left px-3 py-2 rounded hover:bg-background text-on-surface text-sm transition-colors"
-                  >
-                    10 Durchgänge erstellen
-                  </button>
-                  <button
-                    onClick={() => fillDurchgaengeWithTestData(15)}
-                    className="w-full text-left px-3 py-2 rounded hover:bg-background text-on-surface text-sm transition-colors"
-                  >
-                    15 Durchgänge erstellen
-                  </button>
+            {/* Stimulation zur Verstärkung (nur für 1. Durchgang) */}
+            {durchgang.durchgang_nummer === 1 && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-on-surface mb-2">
+                  Kurze Stimulation zur Verstärkung (5 langsame Sets)?
+                </label>
+                <div className="flex gap-4">
+                  {[
+                    { value: true, label: 'Ja' },
+                    { value: false, label: 'Nein' },
+                  ].map((option) => (
+                    <label key={String(option.value)} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`stimulation_verstaerkung_${durchgang.id}`}
+                        checked={durchgang.stimulation_verstaerkung === option.value}
+                        onChange={() => updateDurchgang(durchgang.id, 'stimulation_verstaerkung', option.value)}
+                        className="w-4 h-4 text-green-500 focus:ring-green-500"
+                      />
+                      <span className="text-on-surface">{option.label}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
             )}
-          </div>
-        </div>
 
-        <div className="space-y-4">
-          {(editedProtocol.durchgaenge || []).length === 0 ? (
-            <div className="text-center py-8 text-on-surface/60 bg-surface/50 rounded-lg border-2 border-dashed border-muted">
-              <p>Noch keine Durchgänge dokumentiert.</p>
-              <p className="text-sm mt-1">Klicken Sie auf "Durchgang hinzufügen" um zu beginnen.</p>
+            <div>
+              <label className="block text-sm font-medium text-on-surface mb-2">Kommentar / Beobachtung</label>
+              <textarea
+                value={durchgang.kommentar || ''}
+                onChange={(e) => updateDurchgang(durchgang.id, 'kommentar', e.target.value)}
+                className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none resize-y min-h-[50px] text-sm"
+                placeholder="Beobachtungen zum Durchgang..."
+              />
             </div>
-          ) : (
-            <>
-              {(editedProtocol.durchgaenge || []).map((durchgang, index) => {
-                const isExpanded = expandedDurchgang === index;
-                const durchgangTitel = `Durchgang ${durchgang.durchgang_nummer}`;
-                const sectionNum = durchgang.durchgang_nummer === 1 ? '4.4/4.5' : durchgang.durchgang_nummer === 2 ? '5' : `${durchgang.durchgang_nummer + 3}`;
-                
-                return (
-                  <div
-                    key={durchgang.id}
-                    className={`border-2 rounded-lg transition-colors ${
-                      isExpanded ? 'border-green-500/50 bg-surface/30' : 'border-muted/30 bg-background'
-                    }`}
-                  >
-                    {/* Header */}
-                    <div
-                      className="flex items-center justify-between p-4 cursor-pointer"
-                      onClick={() => setExpandedDurchgang(isExpanded ? null : index)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-bold text-green-400">{sectionNum}</span>
-                        <span className="font-bold text-on-surface">{durchgangTitel}</span>
-                        {!isExpanded && durchgang.gegenwartsorientierung_nach !== undefined && (
-                          <span className={`text-sm px-2 py-0.5 rounded-full ${
-                            durchgang.gegenwartsorientierung_nach >= 70 
-                              ? 'bg-green-500/20 text-green-400' 
-                              : 'bg-yellow-500/20 text-yellow-400'
-                          }`}>
-                            GO: {durchgang.gegenwartsorientierung_nach}%
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeDurchgang(durchgang.id);
-                          }}
-                          className="p-1 text-muted hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
-                          title="Durchgang entfernen"
-                        >
-                          <TrashIcon />
-                        </button>
-                        {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
-                      </div>
-                    </div>
-
-                  {/* Expanded Content */}
-                  {isExpanded && (
-                    <div className="p-4 pt-0 space-y-6">
-                      {/* Bereitschaft (für Durchgänge 2 und 3) */}
-                      {durchgang.durchgang_nummer > 1 && (
-                        <>
-                          <SubsectionHeader 
-                            number={`${durchgang.durchgang_nummer === 2 ? '5.1' : '6.1'}`} 
-                            title="Bereitschaft der Patient:in" 
-                          />
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <YesNoToggle
-                              label="Bereit für weiteren Durchgang?"
-                              value={durchgang.bereitschaft_patient ?? null}
-                              onChange={(value) => updateDurchgang(durchgang.id, 'bereitschaft_patient', value)}
-                            />
-                            <div>
-                              <label className="block text-sm font-medium text-on-surface mb-2">
-                                Kommentar zur Bereitschaft
-                              </label>
-                              <input
-                                type="text"
-                                value={durchgang.bereitschaft_kommentar || ''}
-                                onChange={(e) => updateDurchgang(durchgang.id, 'bereitschaft_kommentar', e.target.value)}
-                                className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
-                                placeholder="Optional..."
-                              />
-                            </div>
-                          </div>
-                        </>
-                      )}
-
-                      {/* Durchführung */}
-                      <SubsectionHeader 
-                        number={durchgang.durchgang_nummer === 1 ? '4.4' : durchgang.durchgang_nummer === 2 ? '5.2' : '6.2'} 
-                        title="Durchführung" 
-                      />
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <YesNoToggle
-                          label="Zähltechnik angewendet?"
-                          value={durchgang.zaehl_technik ?? null}
-                          onChange={(value) => updateDurchgang(durchgang.id, 'zaehl_technik', value)}
-                        />
-                        
-                        <div>
-                          <label className="block text-sm font-medium text-on-surface mb-2">
-                            Dauer (Sekunden)
-                          </label>
-                          <select
-                            value={durchgang.dauer_sekunden}
-                            onChange={(e) => updateDurchgang(durchgang.id, 'dauer_sekunden', parseInt(e.target.value))}
-                            className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
-                          >
-                            {CIPOS_DAUER_OPTIONS.map((sec) => (
-                              <option key={sec} value={sec}>
-                                {sec} Sekunden
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <label className="block text-sm font-medium text-on-surface mb-3">
-                          Reorientierung nach Kontakt (Mehrfachauswahl möglich)
-                        </label>
-                        <CheckboxGroup<ReorientierungsMethode>
-                          options={CIPOS_REORIENTIERUNG_OPTIONS}
-                          selected={durchgang.reorientierung_methoden || []}
-                          onChange={(selected) => updateDurchgang(durchgang.id, 'reorientierung_methoden', selected)}
-                          hasSonstiges={true}
-                          sonstigesValue={durchgang.reorientierung_sonstiges || ''}
-                          onSonstigesChange={(value) => updateDurchgang(durchgang.id, 'reorientierung_sonstiges', value)}
-                        />
-                        
-                        {/* Eigene Reorientierungstechniken - Freitext */}
-                        <div className="mt-4 pt-4 border-t border-muted/30">
-                          <label className="block text-sm font-medium text-on-surface mb-2">
-                            Eigene Reorientierungstechniken <span className="text-on-surface/50">(Freitext)</span>
-                          </label>
-                          <textarea
-                            value={durchgang.reorientierung_freitext || ''}
-                            onChange={(e) => updateDurchgang(durchgang.id, 'reorientierung_freitext', e.target.value)}
-                            className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none resize-y min-h-[80px]"
-                            placeholder="Beschreiben Sie hier weitere angewandte Reorientierungstechniken, z.B. individuelle Ressourcen der Patient:in, spezifische Übungen oder kreative Interventionen..."
-                          />
-                        </div>
-                      </div>
-
-                      {/* Gegenwartsorientierung nach Reorientierung */}
-                      <SubsectionHeader 
-                        number={durchgang.durchgang_nummer === 1 ? '4.5' : durchgang.durchgang_nummer === 2 ? '5.3' : '6.3'} 
-                        title="Gegenwartsorientierung nach Reorientierung" 
-                      />
-                      
-                      <PercentageSlider
-                        label="Prozentwert"
-                        value={durchgang.gegenwartsorientierung_nach}
-                        onChange={(value) => updateDurchgang(durchgang.id, 'gegenwartsorientierung_nach', value)}
-                        targetValue={70}
-                      />
-
-                      {durchgang.durchgang_nummer === 1 && (
-                        <YesNoToggle
-                          label="Kurze Stimulation zur Verstärkung (5 langsame Sets)?"
-                          value={durchgang.stimulation_verstaerkung ?? null}
-                          onChange={(value) => updateDurchgang(durchgang.id, 'stimulation_verstaerkung', value)}
-                        />
-                      )}
-
-                      <div>
-                        <label className="block text-sm font-medium text-on-surface mb-2">
-                          Kommentar / Beobachtung
-                        </label>
-                        <textarea
-                          value={durchgang.kommentar || ''}
-                          onChange={(e) => updateDurchgang(durchgang.id, 'kommentar', e.target.value)}
-                          className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none resize-y min-h-[80px]"
-                          placeholder="Weitere Beobachtungen..."
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-            </>
-          )}
-
-          {/* Add Durchgang button at the bottom */}
-          <div className="pt-4">
-            <Button onClick={addDurchgang} className="w-full md:w-auto">
-              <PlusIcon />
-              Durchgang hinzufügen
-            </Button>
           </div>
-        </div>
+        ))}
+
+        {(!editedProtocol.durchgaenge || editedProtocol.durchgaenge.length === 0) && (
+          <p className="text-muted text-sm italic">Noch keine Durchgänge hinzugefügt. CIPOS umfasst typischerweise 1-3 Durchgänge.</p>
+        )}
       </Card>
 
       {/* Section 7: Abschlussbewertung */}
-      <Card className="mb-6">
-        <SectionHeader number={7} title="Abschlussbewertung" onTestData={fillTestDataSection7} />
+      <Card className="mb-6 border-l-4 border-green-500">
+        <h2 className="text-lg font-bold text-green-400 mb-4">7. Abschlussbewertung</h2>
         
-        <div className="space-y-6">
-          <SubsectionHeader number="7.1" title="SUD nach dem letzten Durchgang" />
-          <SUDSlider
-            label="SUD jetzt"
-            value={editedProtocol.abschlussbewertung?.sud_nach_letztem_durchgang || 5}
-            onChange={(value) => updateField('abschlussbewertung', 'sud_nach_letztem_durchgang', value)}
-          />
-
-          <SubsectionHeader number="7.2" title="Veränderungsverlauf" />
-          {sudChange !== null && (
-            <div className="p-4 bg-surface/50 rounded-lg">
-              <div className="flex items-center justify-between">
-                <span className="text-on-surface">
-                  Ausgangs-SUD: <strong>{sudVorher}</strong> → Abschluss-SUD: <strong>{sudNachher}</strong>
-                </span>
-                <span className={`font-bold text-lg ${
-                  sudChange < 0 ? 'text-green-400' : sudChange > 0 ? 'text-red-400' : 'text-on-surface'
-                }`}>
-                  {sudChange > 0 ? '+' : ''}{sudChange}
-                </span>
-              </div>
-            </div>
-          )}
-
-          <SubsectionHeader number="7.3" title="Patient:innen-Rückmeldung" />
-          <div>
-            <label className="block text-sm font-medium text-on-surface mb-2">
-              Wie fühlt sich die Erinnerung nun an?
-            </label>
-            <textarea
-              value={editedProtocol.abschlussbewertung?.rueckmeldung_erinnerung || ''}
-              onChange={(e) => updateField('abschlussbewertung', 'rueckmeldung_erinnerung', e.target.value)}
-              className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none resize-y min-h-[80px]"
-              placeholder="Patientenaussage..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-on-surface mb-2">
-              Veränderung im Körper?
-            </label>
-            <textarea
-              value={editedProtocol.abschlussbewertung?.rueckmeldung_koerper || ''}
-              onChange={(e) => updateField('abschlussbewertung', 'rueckmeldung_koerper', e.target.value)}
-              className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none resize-y min-h-[80px]"
-              placeholder="Körperwahrnehmung..."
-            />
-          </div>
-
-          <PercentageSlider
-            label="Subjektive Sicherheit jetzt (optional)"
-            value={editedProtocol.abschlussbewertung?.subjektive_sicherheit || 50}
-            onChange={(value) => updateField('abschlussbewertung', 'subjektive_sicherheit', value)}
-          />
-        </div>
-      </Card>
-
-      {/* Section 8: Nachbesprechung / Abschluss */}
-      <Card className="mb-6">
-        <SectionHeader number={8} title="Nachbesprechung / Abschluss" onTestData={fillTestDataSection8} />
-        
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <YesNoToggle
-              label="Nachbesprechung durchgeführt?"
-              value={editedProtocol.nachbesprechung?.nachbesprechung_durchgefuehrt ?? null}
-              onChange={(value) => updateField('nachbesprechung', 'nachbesprechung_durchgefuehrt', value)}
-            />
-            
-            <YesNoToggle
-              label="Hinweis auf weiteres inneres Prozessieren gegeben?"
-              value={editedProtocol.nachbesprechung?.hinweis_inneres_prozessieren ?? null}
-              onChange={(value) => updateField('nachbesprechung', 'hinweis_inneres_prozessieren', value)}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-on-surface mb-2">
-              Aufgabe / Empfehlung für Tagebuch
-            </label>
-            <textarea
-              value={editedProtocol.nachbesprechung?.aufgabe_tagebuch || ''}
-              onChange={(e) => updateField('nachbesprechung', 'aufgabe_tagebuch', e.target.value)}
-              className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none resize-y min-h-[80px]"
-              placeholder="Hausaufgaben oder Tagebuchempfehlungen..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-on-surface mb-2">
-              Besondere Beobachtungen der Therapeut:in
-            </label>
-            <textarea
-              value={editedProtocol.nachbesprechung?.beobachtungen_therapeut || ''}
-              onChange={(e) => updateField('nachbesprechung', 'beobachtungen_therapeut', e.target.value)}
-              className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none resize-y min-h-[80px]"
-              placeholder="Wichtige klinische Beobachtungen..."
-            />
-          </div>
-        </div>
-      </Card>
-
-      {/* Section 9: Falls Schwierigkeiten auftraten */}
-      <Card className="mb-6">
-        <SectionHeader number={9} title="Falls Schwierigkeiten auftraten" onTestData={fillTestDataSection9} />
-        
-        <div className="space-y-6">
-          <YesNoToggle
-            label="Probleme bei der Reorientierung?"
-            value={editedProtocol.schwierigkeiten?.probleme_reorientierung ?? null}
-            onChange={(value) => updateField('schwierigkeiten', 'probleme_reorientierung', value)}
-          />
-
-          {editedProtocol.schwierigkeiten?.probleme_reorientierung && (
-            <div>
-              <label className="block text-sm font-medium text-on-surface mb-2">
-                Erforderliche zusätzliche Stabilisierungstechniken
-              </label>
-              <textarea
-                value={editedProtocol.schwierigkeiten?.stabilisierungstechniken || ''}
-                onChange={(e) => updateField('schwierigkeiten', 'stabilisierungstechniken', e.target.value)}
-                className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none resize-y min-h-[80px]"
-                placeholder="Welche Techniken wurden angewendet..."
-              />
-            </div>
-          )}
-
-          <YesNoToggle
-            label="CIPOS vorzeitig beendet?"
-            value={editedProtocol.schwierigkeiten?.cipos_vorzeitig_beendet ?? null}
-            onChange={(value) => updateField('schwierigkeiten', 'cipos_vorzeitig_beendet', value)}
-          />
-
-          {editedProtocol.schwierigkeiten?.cipos_vorzeitig_beendet && (
-            <div>
-              <label className="block text-sm font-medium text-on-surface mb-2">
-                Grund für vorzeitige Beendigung
-              </label>
-              <textarea
-                value={editedProtocol.schwierigkeiten?.cipos_vorzeitig_grund || ''}
-                onChange={(e) => updateField('schwierigkeiten', 'cipos_vorzeitig_grund', e.target.value)}
-                className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none resize-y min-h-[80px]"
-                placeholder="Warum wurde CIPOS vorzeitig beendet..."
-              />
-            </div>
-          )}
-        </div>
-      </Card>
-
-      {/* Section 10: Abschluss der Dokumentation */}
-      <Card className="mb-6">
-        <SectionHeader number={10} title="Abschluss der Dokumentation" onTestData={fillTestDataSection10} />
-        
-        <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-on-surface mb-2">
-              Gesamteinschätzung der Therapeut:in
-            </label>
-            <textarea
-              value={editedProtocol.abschluss_dokumentation?.gesamteinschaetzung_therapeut || ''}
-              onChange={(e) => updateField('abschluss_dokumentation', 'gesamteinschaetzung_therapeut', e.target.value)}
-              className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none resize-y min-h-[100px]"
-              placeholder="Zusammenfassende Einschätzung des Verlaufs..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-on-surface mb-2">
-              Planung für nächste Sitzung
-            </label>
-            <textarea
-              value={editedProtocol.abschluss_dokumentation?.planung_naechste_sitzung || ''}
-              onChange={(e) => updateField('abschluss_dokumentation', 'planung_naechste_sitzung', e.target.value)}
-              className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none resize-y min-h-[80px]"
-              placeholder="Geplante nächste Schritte..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-on-surface mb-2">
-              Signatur / Name der Therapeut:in
-            </label>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-on-surface mb-2">7.1 SUD nach dem letzten Durchgang (0-10)</label>
+          <div className="flex items-center gap-4">
             <input
-              type="text"
-              value={editedProtocol.abschluss_dokumentation?.signatur_therapeut || ''}
-              onChange={(e) => updateField('abschluss_dokumentation', 'signatur_therapeut', e.target.value)}
-              className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
-              placeholder="Name der Therapeut:in"
+              type="range"
+              min="0"
+              max="10"
+              value={editedProtocol.abschlussbewertung?.sud_nach_letztem_durchgang ?? 5}
+              onChange={(e) => updateNestedField('abschlussbewertung', 'sud_nach_letztem_durchgang', parseInt(e.target.value))}
+              className="flex-1 accent-green-500"
             />
+            <span className={`text-2xl font-bold w-12 text-center ${getSUDColor(editedProtocol.abschlussbewertung?.sud_nach_letztem_durchgang ?? 5)}`}>
+              {editedProtocol.abschlussbewertung?.sud_nach_letztem_durchgang ?? 5}
+            </span>
+          </div>
+        </div>
+
+        {/* SUD Veränderung */}
+        <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30 mb-4">
+          <span className="text-sm text-on-surface">7.2 Veränderungsverlauf: </span>
+          <span className="font-bold">
+            {editedProtocol.erster_kontakt?.sud_vor_kontakt ?? '-'} → {editedProtocol.abschlussbewertung?.sud_nach_letztem_durchgang ?? '-'}
+          </span>
+          {editedProtocol.erster_kontakt?.sud_vor_kontakt !== undefined && 
+           editedProtocol.abschlussbewertung?.sud_nach_letztem_durchgang !== undefined && (
+            <span className={`ml-2 font-bold ${
+              editedProtocol.abschlussbewertung.sud_nach_letztem_durchgang < editedProtocol.erster_kontakt.sud_vor_kontakt ? 'text-green-400' :
+              editedProtocol.abschlussbewertung.sud_nach_letztem_durchgang > editedProtocol.erster_kontakt.sud_vor_kontakt ? 'text-red-400' : 'text-on-surface'
+            }`}>
+              ({editedProtocol.abschlussbewertung.sud_nach_letztem_durchgang - editedProtocol.erster_kontakt.sud_vor_kontakt > 0 ? '+' : ''}
+              {editedProtocol.abschlussbewertung.sud_nach_letztem_durchgang - editedProtocol.erster_kontakt.sud_vor_kontakt})
+            </span>
+          )}
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-on-surface mb-2">7.3 Rückmeldung: Wie fühlt sich die Erinnerung nun an?</label>
+          <textarea
+            value={editedProtocol.abschlussbewertung?.rueckmeldung_erinnerung || ''}
+            onChange={(e) => updateNestedField('abschlussbewertung', 'rueckmeldung_erinnerung', e.target.value)}
+            className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none resize-y min-h-[60px]"
+            placeholder="Patient:innen-Rückmeldung zur Erinnerung..."
+          />
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-on-surface mb-2">Veränderung im Körper?</label>
+          <textarea
+            value={editedProtocol.abschlussbewertung?.rueckmeldung_koerper || ''}
+            onChange={(e) => updateNestedField('abschlussbewertung', 'rueckmeldung_koerper', e.target.value)}
+            className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none resize-y min-h-[60px]"
+            placeholder="Körperliche Veränderungen..."
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-on-surface mb-2">Subjektive Sicherheit jetzt (%)</label>
+          <div className="flex items-center gap-4">
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              value={editedProtocol.abschlussbewertung?.subjektive_sicherheit ?? 50}
+              onChange={(e) => updateNestedField('abschlussbewertung', 'subjektive_sicherheit', parseInt(e.target.value))}
+              className="flex-1 accent-green-500"
+            />
+            <span className={`text-xl font-bold w-16 text-center ${getPercentageColor(editedProtocol.abschlussbewertung?.subjektive_sicherheit ?? 50)}`}>
+              {editedProtocol.abschlussbewertung?.subjektive_sicherheit ?? 50}%
+            </span>
           </div>
         </div>
       </Card>
 
-      {/* Missing Fields Warning */}
-      {missingFields.length > 0 && (
-        <Card className="mb-6 border-2 border-amber-500/50 bg-amber-500/10">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
-              <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-amber-400 font-bold text-sm mb-2">
-                Fehlende Felder im CIPOS-Protokoll ({missingFields.length})
-              </h3>
-              <ul className="text-amber-300/90 text-sm space-y-1 columns-1 md:columns-2 gap-x-8">
-                {missingFields.map((field, index) => (
-                  <li key={index} className="flex items-center gap-2 break-inside-avoid">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0"></span>
-                    {field}
-                  </li>
-                ))}
-              </ul>
+      {/* Section 8: Nachbesprechung */}
+      <Card className="mb-6 border-l-4 border-green-500">
+        <h2 className="text-lg font-bold text-green-400 mb-4">8. Nachbesprechung / Abschluss</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-on-surface mb-2">Nachbesprechung durchgeführt?</label>
+            <div className="flex gap-4">
+              {[
+                { value: true, label: 'Ja' },
+                { value: false, label: 'Nein' },
+              ].map((option) => (
+                <label key={String(option.value)} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="nachbesprechung_durchgefuehrt"
+                    checked={editedProtocol.nachbesprechung?.nachbesprechung_durchgefuehrt === option.value}
+                    onChange={() => updateNestedField('nachbesprechung', 'nachbesprechung_durchgefuehrt', option.value)}
+                    className="w-4 h-4 text-green-500 focus:ring-green-500"
+                  />
+                  <span className="text-on-surface">{option.label}</span>
+                </label>
+              ))}
             </div>
           </div>
-        </Card>
-      )}
+
+          <div>
+            <label className="block text-sm font-medium text-on-surface mb-2">Hinweis auf weiteres inneres Prozessieren?</label>
+            <div className="flex gap-4">
+              {[
+                { value: true, label: 'Ja' },
+                { value: false, label: 'Nein' },
+              ].map((option) => (
+                <label key={String(option.value)} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="hinweis_inneres_prozessieren"
+                    checked={editedProtocol.nachbesprechung?.hinweis_inneres_prozessieren === option.value}
+                    onChange={() => updateNestedField('nachbesprechung', 'hinweis_inneres_prozessieren', option.value)}
+                    className="w-4 h-4 text-green-500 focus:ring-green-500"
+                  />
+                  <span className="text-on-surface">{option.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <Input
+            label="Aufgabe / Empfehlung für Tagebuch"
+            value={editedProtocol.nachbesprechung?.aufgabe_tagebuch || ''}
+            onChange={(e) => updateNestedField('nachbesprechung', 'aufgabe_tagebuch', e.target.value)}
+            placeholder="z.B. Veränderungen notieren..."
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-on-surface mb-2">Besondere Beobachtungen der Therapeut:in</label>
+          <textarea
+            value={editedProtocol.nachbesprechung?.beobachtungen_therapeut || ''}
+            onChange={(e) => updateNestedField('nachbesprechung', 'beobachtungen_therapeut', e.target.value)}
+            className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none resize-y min-h-[60px]"
+            placeholder="Beobachtungen zum Abschluss..."
+          />
+        </div>
+      </Card>
+
+      {/* Section 9: Schwierigkeiten */}
+      <Card className="mb-6 border-l-4 border-green-500">
+        <h2 className="text-lg font-bold text-green-400 mb-4">9. Falls Schwierigkeiten auftraten</h2>
+        
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-on-surface mb-2">Probleme bei der Reorientierung?</label>
+          <div className="flex gap-4">
+            {[
+              { value: true, label: 'Ja' },
+              { value: false, label: 'Nein' },
+            ].map((option) => (
+              <label key={String(option.value)} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="probleme_reorientierung"
+                  checked={editedProtocol.schwierigkeiten?.probleme_reorientierung === option.value}
+                  onChange={() => updateNestedField('schwierigkeiten', 'probleme_reorientierung', option.value)}
+                  className="w-4 h-4 text-green-500 focus:ring-green-500"
+                />
+                <span className="text-on-surface">{option.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {editedProtocol.schwierigkeiten?.probleme_reorientierung && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-on-surface mb-2">Erforderliche zusätzliche Stabilisierungstechniken</label>
+            <textarea
+              value={editedProtocol.schwierigkeiten?.stabilisierungstechniken || ''}
+              onChange={(e) => updateNestedField('schwierigkeiten', 'stabilisierungstechniken', e.target.value)}
+              className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none resize-y min-h-[60px]"
+              placeholder="Welche Techniken wurden eingesetzt?"
+            />
+          </div>
+        )}
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-on-surface mb-2">CIPOS vorzeitig beendet?</label>
+          <div className="flex gap-4">
+            {[
+              { value: true, label: 'Ja' },
+              { value: false, label: 'Nein' },
+            ].map((option) => (
+              <label key={String(option.value)} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="cipos_vorzeitig_beendet"
+                  checked={editedProtocol.schwierigkeiten?.cipos_vorzeitig_beendet === option.value}
+                  onChange={() => updateNestedField('schwierigkeiten', 'cipos_vorzeitig_beendet', option.value)}
+                  className="w-4 h-4 text-green-500 focus:ring-green-500"
+                />
+                <span className="text-on-surface">{option.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {editedProtocol.schwierigkeiten?.cipos_vorzeitig_beendet && (
+          <div>
+            <label className="block text-sm font-medium text-on-surface mb-2">Grund für vorzeitige Beendigung</label>
+            <textarea
+              value={editedProtocol.schwierigkeiten?.cipos_vorzeitig_grund || ''}
+              onChange={(e) => updateNestedField('schwierigkeiten', 'cipos_vorzeitig_grund', e.target.value)}
+              className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none resize-y min-h-[60px]"
+              placeholder="Warum wurde abgebrochen?"
+            />
+          </div>
+        )}
+      </Card>
+
+      {/* Section 10: Abschluss Dokumentation */}
+      <Card className="mb-6 border-l-4 border-green-500">
+        <h2 className="text-lg font-bold text-green-400 mb-4">10. Abschluss der Dokumentation</h2>
+        
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-on-surface mb-2">Gesamteinschätzung der Therapeut:in</label>
+          <textarea
+            value={editedProtocol.abschluss_dokumentation?.gesamteinschaetzung_therapeut || ''}
+            onChange={(e) => updateNestedField('abschluss_dokumentation', 'gesamteinschaetzung_therapeut', e.target.value)}
+            className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none resize-y min-h-[80px]"
+            placeholder="Gesamtbewertung der Sitzung..."
+          />
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-on-surface mb-2">Planung für nächste Sitzung</label>
+          <textarea
+            value={editedProtocol.abschluss_dokumentation?.planung_naechste_sitzung || ''}
+            onChange={(e) => updateNestedField('abschluss_dokumentation', 'planung_naechste_sitzung', e.target.value)}
+            className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none resize-y min-h-[60px]"
+            placeholder="Was ist für die nächste Sitzung geplant?"
+          />
+        </div>
+
+        <Input
+          label="Signatur / Name der Therapeut:in"
+          value={editedProtocol.abschluss_dokumentation?.signatur_therapeut || ''}
+          onChange={(e) => updateNestedField('abschluss_dokumentation', 'signatur_therapeut', e.target.value)}
+          placeholder="Name oder Kürzel"
+        />
+      </Card>
 
       {/* Action Buttons */}
       <Card className="sticky bottom-4 z-10 shadow-2xl border-2 border-green-500/30">
@@ -1439,7 +878,7 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
               <SaveIcon />
               {saveStatus === 'saving' ? 'Speichert...' : saveStatus === 'saved' ? 'Gespeichert!' : 'Speichern'}
             </Button>
-
+            
             <Button onClick={onCancel} variant="secondary">
               <XMarkIcon />
               Abbrechen
@@ -1452,7 +891,7 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
                 <DownloadIcon />
                 JSON Export
               </Button>
-
+              
               <Button onClick={handleExportPDF} variant="primary" disabled={hasUnsavedChanges}>
                 <PrinterIcon />
                 PDF Export
@@ -1461,12 +900,12 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
           )}
         </div>
 
-        {saveStatus === 'error' && missingFields.length > 0 && (
+        {saveStatus === 'error' && (
           <p className="text-red-500 text-sm mt-3">
-            Fehler beim Speichern. Bitte füllen Sie alle oben aufgelisteten Felder aus.
+            Fehler beim Speichern. Bitte füllen Sie alle Pflichtfelder aus.
           </p>
         )}
-
+        
         {hasUnsavedChanges && editedProtocol.id && (
           <p className="text-yellow-500 text-sm mt-3">
             Hinweis: Speichern Sie das Protokoll, bevor Sie exportieren.
@@ -1476,4 +915,3 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
     </div>
   );
 };
-
