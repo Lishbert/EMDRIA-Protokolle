@@ -67,7 +67,7 @@ interface StandardProtocolEditorProps {
   onCancel: () => void;
 }
 
-const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ protocol, onSave, onCancel }) => {
+export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ protocol, onSave, onCancel }) => {
   const [editedProtocol, setEditedProtocol] = useState<Partial<StandardProtocol>>({});
   const [errors, setErrors] = useState<{ [key: string]: boolean }>({});
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');

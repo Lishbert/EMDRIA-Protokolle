@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Button, Card, Input, Select } from './ui';
 import { SaveIcon, XMarkIcon, DownloadIcon, PrinterIcon, PlusIcon, TrashIcon } from './icons';
 import { MetadataForm } from './MetadataForm';
+import { StandardProtocolEditor } from './ProtocolEditor';
+import { CIPOSProtocolEditor } from './CIPOSProtocolEditor';
 import type { 
   IRIProtocol, 
   IRIStimulationSet, 
@@ -10,6 +12,9 @@ import type {
   KoerperempfindungQualitaet,
   StimulationTyp,
   SetGeschwindigkeit,
+  StandardProtocol,
+  CIPOSProtocol,
+  ProtocolType,
   createEmptyIRIData
 } from '../types';
 import { saveProtocol } from '../utils/storage';
@@ -32,6 +37,7 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
   const [editedProtocol, setEditedProtocol] = useState<Partial<IRIProtocol>>({});
   const [errors, setErrors] = useState<{ [key: string]: boolean }>({});
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [switchedProtocolType, setSwitchedProtocolType] = useState<ProtocolType | null>(null);
 
   // Initialize or reset form when protocol changes
   useEffect(() => {
@@ -79,14 +85,95 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
     }
     setErrors({});
     setSaveStatus('idle');
+    setSwitchedProtocolType(null);
   }, [protocol]);
 
   const handleMetadataChange = (metadata: Partial<IRIProtocol>) => {
+    // Check if protocol type is being changed
+    if (metadata.protocolType && metadata.protocolType !== 'IRI') {
+      setSwitchedProtocolType(metadata.protocolType);
+      setEditedProtocol({
+        ...editedProtocol,
+        ...metadata,
+      });
+      return;
+    }
+    
     setEditedProtocol({
       ...editedProtocol,
       ...metadata,
     });
   };
+
+  // If protocol type was switched to CIPOS, render CIPOS editor
+  if (switchedProtocolType === 'CIPOS') {
+    const ciposProtocol: Partial<CIPOSProtocol> = {
+      id: editedProtocol.id || crypto.randomUUID(),
+      chiffre: editedProtocol.chiffre || '',
+      datum: editedProtocol.datum || new Date().toISOString().split('T')[0],
+      protokollnummer: editedProtocol.protokollnummer || '',
+      protocolType: 'CIPOS',
+      createdAt: editedProtocol.createdAt || Date.now(),
+      lastModified: Date.now(),
+      gegenwartsorientierung_vorher: {
+        prozent_gegenwartsorientierung: 50,
+        indikatoren_patient: '',
+      },
+      verstaerkung_gegenwart: {
+        stimulation_methode: 'visuell',
+        dauer_anzahl_sets: '',
+        reaktion_verbesserung: null,
+        gegenwartsorientierung_nach_stimulation: 50,
+      },
+      erster_kontakt: {
+        zielerinnerung_beschreibung: '',
+        sud_vor_kontakt: 5,
+        belastungsdauer_sekunden: 5,
+      },
+      durchgaenge: [],
+      abschlussbewertung: {
+        sud_nach_letztem_durchgang: 5,
+      },
+      nachbesprechung: {
+        nachbesprechung_durchgefuehrt: null,
+        hinweis_inneres_prozessieren: null,
+      },
+      schwierigkeiten: {
+        probleme_reorientierung: null,
+        cipos_vorzeitig_beendet: null,
+      },
+      abschluss_dokumentation: {},
+    };
+    return (
+      <CIPOSProtocolEditor
+        protocol={ciposProtocol as CIPOSProtocol}
+        onSave={onSave}
+        onCancel={onCancel}
+      />
+    );
+  }
+
+  // If protocol type was switched to a standard type, render standard editor
+  if (switchedProtocolType && switchedProtocolType !== 'IRI' && switchedProtocolType !== 'CIPOS') {
+    const standardProtocol: Partial<StandardProtocol> = {
+      id: editedProtocol.id || crypto.randomUUID(),
+      chiffre: editedProtocol.chiffre || '',
+      datum: editedProtocol.datum || new Date().toISOString().split('T')[0],
+      protokollnummer: editedProtocol.protokollnummer || '',
+      protocolType: switchedProtocolType,
+      createdAt: editedProtocol.createdAt || Date.now(),
+      lastModified: Date.now(),
+      startKnoten: '',
+      channel: [],
+    };
+    return (
+      <StandardProtocolEditor
+        protocol={standardProtocol as StandardProtocol}
+        onSave={onSave}
+        onCancel={onCancel}
+      />
+    );
+  }
 
   // Helper to update nested fields
   const updateNestedField = <T extends keyof IRIProtocol>(
