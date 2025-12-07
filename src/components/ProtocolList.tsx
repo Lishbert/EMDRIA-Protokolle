@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Button, Card, Input, Select } from './ui';
-import { PlusIcon, PencilIcon, TrashIcon, DownloadIcon, PrinterIcon, SearchIcon, FilterIcon, BeakerIcon } from './icons';
+import { PlusIcon, PencilIcon, TrashIcon, PrinterIcon, SearchIcon, FilterIcon, BeakerIcon } from './icons';
 import type { ProtocolListItem, ProtocolType } from '../types';
 import { PROTOCOL_TYPES, PROTOCOL_TYPE_COLORS, PROTOCOL_TYPE_BORDER_COLORS } from '../constants';
 import { generateMultipleTestProtocols, generateTestProtocolsAllTypes } from '../utils/testData';
@@ -10,7 +10,6 @@ interface ProtocolListProps {
   onNew: () => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
-  onExportJSON: (id: string) => void;
   onExportPDF: (id: string) => void;
   onRefresh: () => void;
 }
@@ -38,7 +37,6 @@ export const ProtocolList: React.FC<ProtocolListProps> = ({
   onNew,
   onEdit,
   onDelete,
-  onExportJSON,
   onExportPDF,
   onRefresh,
 }) => {
@@ -105,7 +103,6 @@ export const ProtocolList: React.FC<ProtocolListProps> = ({
       'IRI': 0,
       'CIPOS': 0,
       'Sicherer Ort': 0,
-      'Custom': 0,
     };
     protocols.forEach(p => {
       grouped[p.protocolType] = (grouped[p.protocolType] || 0) + 1;
@@ -423,15 +420,6 @@ export const ProtocolList: React.FC<ProtocolListProps> = ({
                               >
                                 <PencilIcon />
                                 <span className="hidden sm:inline">Bearbeiten</span>
-                              </button>
-
-                              <button
-                                onClick={() => onExportJSON(protocol.id)}
-                                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-xs font-semibold"
-                                title="JSON Export"
-                              >
-                                <DownloadIcon />
-                                <span className="hidden sm:inline">JSON</span>
                               </button>
 
                               <button

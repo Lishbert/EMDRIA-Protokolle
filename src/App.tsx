@@ -6,7 +6,7 @@ import { ProtocolEditor } from './components/ProtocolEditor';
 import { ListIcon, PencilIcon, CloudIcon } from './components/icons';
 import type { Protocol, ProtocolListItem } from './types';
 import { getProtocolsList, loadProtocol, deleteProtocol } from './utils/storage';
-import { exportProtocolAsJSON, exportProtocolAsPDF } from './utils/export';
+import { exportProtocolAsPDF } from './utils/export';
 
 // Notification Component
 interface NotificationProps {
@@ -218,18 +218,6 @@ export default function App() {
     setActiveTab('list');
   };
 
-  const handleExportJSON = (id: string) => {
-    const protocol = loadProtocol(id);
-    if (protocol) {
-      try {
-        exportProtocolAsJSON(protocol);
-        showNotification('JSON-Export erfolgreich.', 'success');
-      } catch (error) {
-        showNotification('Fehler beim JSON-Export.', 'error');
-      }
-    }
-  };
-
   const handleExportPDF = (id: string) => {
     const protocol = loadProtocol(id);
     if (protocol) {
@@ -290,7 +278,6 @@ export default function App() {
               onNew={handleNewProtocol}
               onEdit={handleEditProtocol}
               onDelete={handleDeleteProtocol}
-              onExportJSON={handleExportJSON}
               onExportPDF={handleExportPDF}
               onRefresh={loadProtocolsList}
             />

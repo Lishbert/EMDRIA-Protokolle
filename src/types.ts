@@ -1,4 +1,4 @@
-export type ProtocolType = 'Reprozessieren' | 'IRI' | 'CIPOS' | 'Sicherer Ort' | 'Custom';
+export type ProtocolType = 'Reprozessieren' | 'IRI' | 'CIPOS' | 'Sicherer Ort';
 export type Speed = 'langsam' | 'schnell';
 
 export interface ProtocolMetadata {
