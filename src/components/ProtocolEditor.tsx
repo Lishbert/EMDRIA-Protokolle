@@ -5,7 +5,8 @@ import { MetadataForm } from './MetadataForm';
 import { ChannelEditor } from './ChannelEditor';
 import { IRIProtocolEditor } from './IRIProtocolEditor';
 import { CIPOSProtocolEditor } from './CIPOSProtocolEditor';
-import type { Protocol, StandardProtocol, IRIProtocol, CIPOSProtocol, ProtocolType, isIRIProtocol, isStandardProtocol, isCIPOSProtocol } from '../types';
+import { SichererOrtProtocolEditor } from './SichererOrtProtocolEditor';
+import type { Protocol, StandardProtocol, IRIProtocol, CIPOSProtocol, SichererOrtProtocol, ProtocolType, isIRIProtocol, isStandardProtocol, isCIPOSProtocol, isSichererOrtProtocol } from '../types';
 import { saveProtocol } from '../utils/storage';
 import { exportProtocolAsJSON, exportProtocolAsPDF } from '../utils/export';
 import { DEFAULT_PROTOCOL_TYPE } from '../constants';
@@ -27,6 +28,11 @@ function checkIsCIPOS(protocol: Protocol | Partial<Protocol> | null): boolean {
   return protocol?.protocolType === 'CIPOS';
 }
 
+// Check if a protocol is Sicherer Ort type
+function checkIsSichererOrt(protocol: Protocol | Partial<Protocol> | null): boolean {
+  return protocol?.protocolType === 'Sicherer Ort';
+}
+
 export const ProtocolEditor: React.FC<ProtocolEditorProps> = ({ protocol, onSave, onCancel }) => {
   // If it's an IRI protocol, use the IRI editor
   if (protocol && checkIsIRI(protocol)) {
@@ -44,6 +50,17 @@ export const ProtocolEditor: React.FC<ProtocolEditorProps> = ({ protocol, onSave
     return (
       <CIPOSProtocolEditor
         protocol={protocol as CIPOSProtocol}
+        onSave={onSave}
+        onCancel={onCancel}
+      />
+    );
+  }
+
+  // If it's a Sicherer Ort protocol, use the Sicherer Ort editor
+  if (protocol && checkIsSichererOrt(protocol)) {
+    return (
+      <SichererOrtProtocolEditor
+        protocol={protocol as SichererOrtProtocol}
         onSave={onSave}
         onCancel={onCancel}
       />
@@ -180,6 +197,69 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
       };
       // Save the partial protocol and trigger refresh
       setEditedProtocol(ciposProtocol as unknown as Partial<StandardProtocol>);
+      return;
+    }
+
+    // If switching to Sicherer Ort, we need to redirect
+    if (metadata.protocolType === 'Sicherer Ort' && editedProtocol.protocolType !== 'Sicherer Ort') {
+      // Create a new Sicherer Ort protocol with the same metadata
+      const sichererOrtProtocol: Partial<SichererOrtProtocol> = {
+        id: editedProtocol.id || crypto.randomUUID(),
+        chiffre: metadata.chiffre || editedProtocol.chiffre || '',
+        datum: metadata.datum || editedProtocol.datum || new Date().toISOString().split('T')[0],
+        protokollnummer: metadata.protokollnummer || editedProtocol.protokollnummer || '',
+        protocolType: 'Sicherer Ort',
+        createdAt: editedProtocol.createdAt || Date.now(),
+        lastModified: Date.now(),
+        einfuehrung: {
+          einbettung_kurzbeschreibung: '',
+          psychoedukation_gegeben: null,
+          anker_konzept_erklaert: null,
+        },
+        findung: {
+          ort_typ: null,
+          ort_nennung: '',
+          gefuehl_beim_ort: '',
+          koerperstelle_gefuehl: '',
+        },
+        set1: {
+          bls_durchgefuehrt: null,
+          stimulation_art: null,
+          reaktion_nach_set: null,
+          reaktion_beschreibung: '',
+          interpretation_fall: null,
+        },
+        set2: {
+          bls_durchgefuehrt: null,
+          reaktion_nach_set: null,
+        },
+        wortarbeit: {
+          wort_fuer_ort: '',
+          set3_bls_durchgefuehrt: null,
+          set3_patient_denkt_wort_ort: null,
+          set3_reaktion: '',
+          set4_durchgefuehrt: null,
+        },
+        transfer: {
+          anleitung_durchgefuehrt: null,
+          patient_erreicht_ort: null,
+          reaktion_beschreibung: '',
+          alltag_nutzbar: null,
+          alltag_hinweise: '',
+        },
+        abschluss: {
+          subjektiver_zustand: [],
+          koerperliche_wahrnehmung: '',
+          stabilisierung_ausreichend: null,
+        },
+        therapeutische_einschaetzung: {
+          eignung_sicherer_ort: null,
+          besondere_beobachtungen: '',
+          planung_weitere_sitzungen: '',
+        },
+      };
+      // Save the partial protocol and trigger refresh
+      setEditedProtocol(sichererOrtProtocol as unknown as Partial<StandardProtocol>);
       return;
     }
 
@@ -357,6 +437,17 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
     return (
       <CIPOSProtocolEditor
         protocol={editedProtocol as unknown as CIPOSProtocol}
+        onSave={onSave}
+        onCancel={onCancel}
+      />
+    );
+  }
+
+  // If the current protocol has switched to Sicherer Ort type, render Sicherer Ort editor
+  if (editedProtocol.protocolType === 'Sicherer Ort') {
+    return (
+      <SichererOrtProtocolEditor
+        protocol={editedProtocol as unknown as SichererOrtProtocol}
         onSave={onSave}
         onCancel={onCancel}
       />

@@ -2,6 +2,7 @@ import type {
   Protocol, 
   StandardProtocol, 
   IRIProtocol,
+  SichererOrtProtocol,
   ProtocolType, 
   Speed, 
   ChannelItem, 
@@ -13,6 +14,11 @@ import type {
   StimulationTyp,
   SetGeschwindigkeit,
   IRIStimulationSet,
+  OrtTyp,
+  SichererOrtStimulationTyp,
+  BLSReaktion,
+  SubjektiverZustand,
+  EignungEinschaetzung,
 } from '../types';
 import { PROTOCOL_TYPES } from '../constants';
 import { saveProtocol } from './storage';
@@ -224,6 +230,90 @@ export const SAMPLE_CIPOS_NAECHSTE_SITZUNG = [
   'Review der Hausaufgaben, dann Entscheidung über weiteres Vorgehen.',
 ];
 
+// =============================================================
+// Sicherer Ort Protocol Test Data
+// =============================================================
+
+export const SAMPLE_SICHERER_ORT_EINBETTUNG = [
+  'Patient zeigt erhöhte Anspannung, benötigt Stabilisierungstechnik vor weiterer Arbeit.',
+  'Vorbereitung auf belastende Traumaarbeit – Ressourcenaufbau als Grundlage.',
+  'Nach schwieriger Woche: Selbstregulationsfähigkeit stärken.',
+  'Regelmäßige Stabilisierungsübung zur Vertiefung der Ressource.',
+  'Erstmalige Einführung des sicheren Ortes als Stabilisierungstechnik.',
+];
+
+export const SAMPLE_SICHERER_ORT_ORTE = [
+  { typ: 'fantasieort' as OrtTyp, name: 'Waldlichtung mit weichem Moos und Sonnenstrahlen', gefuehl: 'Ruhe und Geborgenheit' },
+  { typ: 'fantasieort' as OrtTyp, name: 'Wolkeninsel über dem Meer', gefuehl: 'Leichtigkeit und Freiheit' },
+  { typ: 'realer_vergangenheit' as OrtTyp, name: 'Großmutters Garten mit Apfelbaum', gefuehl: 'Geborgenheit und Wärme' },
+  { typ: 'realer_vergangenheit' as OrtTyp, name: 'Lieblingsstrand aus dem Urlaub 2019', gefuehl: 'Entspannung und Weite' },
+  { typ: 'realer_gegenwart' as OrtTyp, name: 'Gemütliche Leseecke im Wohnzimmer', gefuehl: 'Sicherheit und Ruhe' },
+  { typ: 'fantasieort' as OrtTyp, name: 'Berggipfel mit Panoramablick', gefuehl: 'Freiheit und Stärke' },
+];
+
+export const SAMPLE_KOERPERSTELLEN_GEFUEHL = [
+  'Wärme in der Brust, die sich ausbreitet',
+  'Leichtes Kribbeln im Bauch',
+  'Entspannung in den Schultern',
+  'Weites Gefühl im Brustkorb',
+  'Ruhe im ganzen Körper',
+  'Wärme in den Händen',
+];
+
+export const SAMPLE_BLS_REAKTION_BESCHREIBUNG = [
+  'Das Bild wird klarer und leuchtender, die Farben intensiver.',
+  'Das Gefühl von Sicherheit breitet sich im ganzen Körper aus.',
+  'Tiefe Entspannung setzt ein, Schultern sinken herab.',
+  'Der Ort fühlt sich noch vertrauter und sicherer an.',
+  'Die Atmung wird tiefer und ruhiger.',
+];
+
+export const SAMPLE_WORTE_FUER_ORT = [
+  'Ruhe',
+  'Geborgenheit',
+  'Frieden',
+  'Sicherheit',
+  'Kraft',
+  'Heimat',
+  'Licht',
+  'Wärme',
+];
+
+export const SAMPLE_TRANSFER_REAKTION = [
+  'Patient:in kann den Ort gut visualisieren und das positive Gefühl aufrufen.',
+  'Nach kurzer Konzentration gelingt der Zugang zum sicheren Ort gut.',
+  'Ort und Gefühl sind schnell erreichbar, Entspannung tritt ein.',
+  'Mit dem Wort als Anker gelingt der Zugang zuverlässig.',
+];
+
+export const SAMPLE_ALLTAG_HINWEISE = [
+  'Bei aufkommender Anspannung kurz die Augen schließen und das Wort innerlich sagen.',
+  'Morgens und abends je 2 Minuten den sicheren Ort aufsuchen.',
+  'In stressigen Momenten: Hand aufs Herz, drei Atemzüge, Wort denken.',
+  'Als Vorbereitung vor schwierigen Situationen nutzen.',
+];
+
+export const SAMPLE_KOERPERLICHE_WAHRNEHMUNG_ABSCHLUSS = [
+  'Ganzer Körper entspannt, angenehme Schwere in Armen und Beinen.',
+  'Ruhige, tiefe Atmung, Wärme im Brustbereich.',
+  'Gelöste Schultern, entspannte Gesichtszüge.',
+  'Gefühl von Erdung und Stabilität.',
+];
+
+export const SAMPLE_BESONDERE_BEOBACHTUNGEN = [
+  'Guter Zugang zur Imagination, lebhafte Visualisierung möglich.',
+  'Leichte Unsicherheit zu Beginn, die sich im Verlauf auflöste.',
+  'Tiefe emotionale Resonanz beim Finden des sicheren Ortes.',
+  'Patient:in zeigt deutliche körperliche Entspannungsreaktion.',
+];
+
+export const SAMPLE_PLANUNG_WEITERE_SITZUNGEN = [
+  'Vertiefung des sicheren Ortes in nächster Sitzung, dann Beginn der Traumaarbeit.',
+  'Regelmäßiges Üben zu Hause, in zwei Wochen Überprüfung der Stabilität.',
+  'Nächste Sitzung: Erweiterung um weitere Ressourcen-Imaginationen.',
+  'Bei stabiler Ressource: Übergang zur EMDR-Reprozessierung planen.',
+];
+
 // Helper functions for generating random test data - exported for individual field generation
 export const getRandomItem = <T>(array: T[]): T => {
   return array[Math.floor(Math.random() * array.length)];
@@ -349,7 +439,7 @@ export const getRandomIRISet = (setNummer: number): IRIStimulationSet => {
   };
 };
 
-// Generate a single test protocol (Standard or IRI based on type)
+// Generate a single test protocol (Standard, IRI, or Sicherer Ort based on type)
 export const generateTestProtocol = (
   protocolType?: ProtocolType,
   chiffre?: string
@@ -362,6 +452,11 @@ export const generateTestProtocol = (
   // If IRI, generate IRI protocol
   if (type === 'IRI') {
     return generateIRITestProtocol(cipher, date, now);
+  }
+  
+  // If Sicherer Ort, generate Sicherer Ort protocol
+  if (type === 'Sicherer Ort') {
+    return generateSichererOrtTestProtocol(cipher, date, now);
   }
   
   // Otherwise generate standard protocol
@@ -462,6 +557,96 @@ export const generateIRITestProtocol = (
       therapeut_reflexion: getRandomItem(SAMPLE_THERAPEUT_REFLEXION),
       naechste_schritte_behandlung: 'Fortsetzung der Ressourcenarbeit in der nächsten Sitzung. Bei guter Stabilität ggf. Beginn der Reprozessierung.',
       einwilligung_dokumentation: true,
+      signatur_therapeut: `Dr. Muster, ${new Date(now).toLocaleDateString('de-DE')}`,
+    },
+  };
+  
+  return protocol;
+};
+
+// Generate a Sicherer Ort test protocol
+export const generateSichererOrtTestProtocol = (
+  chiffre?: string,
+  datum?: string,
+  timestamp?: number
+): SichererOrtProtocol => {
+  const cipher = chiffre || getRandomItem(SAMPLE_CHIFFRES);
+  const date = datum || getRandomDate();
+  const now = timestamp || Date.now();
+  
+  const ortData = getRandomItem(SAMPLE_SICHERER_ORT_ORTE);
+  const stimulationArten: SichererOrtStimulationTyp[] = ['augenbewegungen', 'taps', 'auditiv'];
+  const reaktionen: BLSReaktion[] = ['positiv', 'keine'];
+  const subjektiveZustaende: SubjektiverZustand[] = ['ruhiger', 'verbundener', 'stabiler'];
+  const eignungen: EignungEinschaetzung[] = ['geeignet', 'bedingt_geeignet'];
+  
+  const set1Reaktion = getRandomItem(reaktionen);
+  const set2Reaktion = getRandomItem(reaktionen);
+  
+  const protocol: SichererOrtProtocol = {
+    id: crypto.randomUUID(),
+    chiffre: cipher,
+    datum: date,
+    protokollnummer: getRandomProtocolNumber(),
+    protocolType: 'Sicherer Ort',
+    createdAt: now,
+    lastModified: now,
+    
+    einfuehrung: {
+      einbettung_kurzbeschreibung: getRandomItem(SAMPLE_SICHERER_ORT_EINBETTUNG),
+      psychoedukation_gegeben: getRandomBoolean() ? 'ja' : 'nein',
+      psychoedukation_kommentar: getRandomBoolean() ? 'Konzept des sicheren Ortes als innere Ressource erklärt.' : undefined,
+      anker_konzept_erklaert: getRandomBoolean(),
+    },
+    
+    findung: {
+      ort_typ: ortData.typ,
+      ort_nennung: ortData.name,
+      gefuehl_beim_ort: ortData.gefuehl,
+      koerperstelle_gefuehl: getRandomItem(SAMPLE_KOERPERSTELLEN_GEFUEHL),
+    },
+    
+    set1: {
+      bls_durchgefuehrt: true,
+      stimulation_art: getRandomItem(stimulationArten),
+      reaktion_nach_set: set1Reaktion,
+      reaktion_beschreibung: getRandomItem(SAMPLE_BLS_REAKTION_BESCHREIBUNG),
+      interpretation_fall: 'fall1_weiter',
+    },
+    
+    set2: {
+      bls_durchgefuehrt: true,
+      reaktion_nach_set: set2Reaktion,
+      kommentar: 'Verstärkung des positiven Gefühls, Ort wird noch klarer.',
+    },
+    
+    wortarbeit: {
+      wort_fuer_ort: getRandomItem(SAMPLE_WORTE_FUER_ORT),
+      set3_bls_durchgefuehrt: true,
+      set3_patient_denkt_wort_ort: true,
+      set3_reaktion: 'Wort verstärkt den Zugang zum Gefühl deutlich.',
+      set4_durchgefuehrt: getRandomBoolean(),
+      set4_reaktion: getRandomBoolean() ? 'Weitere Vertiefung der Verbindung Wort-Ort-Gefühl.' : undefined,
+    },
+    
+    transfer: {
+      anleitung_durchgefuehrt: true,
+      patient_erreicht_ort: 'ja',
+      reaktion_beschreibung: getRandomItem(SAMPLE_TRANSFER_REAKTION),
+      alltag_nutzbar: 'ja',
+      alltag_hinweise: getRandomItem(SAMPLE_ALLTAG_HINWEISE),
+    },
+    
+    abschluss: {
+      subjektiver_zustand: getRandomItems(subjektiveZustaende, 1, 3) as SubjektiverZustand[],
+      koerperliche_wahrnehmung: getRandomItem(SAMPLE_KOERPERLICHE_WAHRNEHMUNG_ABSCHLUSS),
+      stabilisierung_ausreichend: true,
+    },
+    
+    therapeutische_einschaetzung: {
+      eignung_sicherer_ort: getRandomItem(eignungen),
+      besondere_beobachtungen: getRandomItem(SAMPLE_BESONDERE_BEOBACHTUNGEN),
+      planung_weitere_sitzungen: getRandomItem(SAMPLE_PLANUNG_WEITERE_SITZUNGEN),
       signatur_therapeut: `Dr. Muster, ${new Date(now).toLocaleDateString('de-DE')}`,
     },
   };

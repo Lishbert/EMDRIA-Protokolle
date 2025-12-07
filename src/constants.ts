@@ -7,7 +7,12 @@ import type {
   StimulationTyp,
   SetGeschwindigkeit,
   CIPOSStimulationMethode,
-  ReorientierungsMethode
+  ReorientierungsMethode,
+  OrtTyp,
+  SichererOrtStimulationTyp,
+  BLSReaktion,
+  SubjektiverZustand,
+  EignungEinschaetzung
 } from './types';
 
 // Storage keys
@@ -148,3 +153,46 @@ export const CIPOS_REORIENTIERUNG_OPTIONS: { value: ReorientierungsMethode; labe
 
 // Default duration options for CIPOS (3-10 seconds)
 export const CIPOS_DAUER_OPTIONS = [3, 4, 5, 6, 7, 8, 9, 10];
+
+// =============================================================
+// Sicherer Ort Protocol Constants
+// =============================================================
+
+// Ort Typ options
+export const SICHERER_ORT_TYP_OPTIONS: { value: OrtTyp; label: string; hinweis?: string }[] = [
+  { value: 'fantasieort', label: 'Fantasieort' },
+  { value: 'realer_vergangenheit', label: 'Realer Ort aus der Vergangenheit' },
+  { value: 'realer_gegenwart', label: 'Realer Ort aus der Gegenwart', hinweis: 'Kritisch → ggf. Alternativen gesucht' },
+];
+
+// Stimulation Art options
+export const SICHERER_ORT_STIMULATION_OPTIONS: { value: SichererOrtStimulationTyp; label: string }[] = [
+  { value: 'augenbewegungen', label: 'Augenbewegungen' },
+  { value: 'taps', label: 'Taps' },
+  { value: 'auditiv', label: 'Auditiv' },
+  { value: 'anderes', label: 'Anderes' },
+];
+
+// BLS Reaktion options
+export const BLS_REAKTION_OPTIONS: { value: BLSReaktion; label: string }[] = [
+  { value: 'positiv', label: 'Positive Veränderung' },
+  { value: 'keine', label: 'Keine Veränderung' },
+  { value: 'negativ', label: 'Negative Veränderung' },
+];
+
+// Subjektiver Zustand options
+export const SUBJEKTIVER_ZUSTAND_OPTIONS: { value: SubjektiverZustand; label: string }[] = [
+  { value: 'ruhiger', label: 'Ruhiger' },
+  { value: 'verbundener', label: 'Verbundener' },
+  { value: 'stabiler', label: 'Stabiler' },
+  { value: 'unveraendert', label: 'Unverändert' },
+  { value: 'dysreguliert', label: 'Dysreguliert' },
+];
+
+// Eignung Einschätzung options
+export const EIGNUNG_EINSCHAETZUNG_OPTIONS: { value: EignungEinschaetzung; label: string }[] = [
+  { value: 'geeignet', label: 'Geeignet' },
+  { value: 'bedingt_geeignet', label: 'Bedingt geeignet' },
+  { value: 'nicht_geeignet', label: 'Nicht geeignet' },
+  { value: 'weiter_explorieren', label: 'Weiter explorieren' },
+];

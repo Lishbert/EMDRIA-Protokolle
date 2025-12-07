@@ -4,6 +4,7 @@ import { SaveIcon, XMarkIcon, DownloadIcon, PrinterIcon, PlusIcon, TrashIcon } f
 import { MetadataForm } from './MetadataForm';
 import { StandardProtocolEditor } from './ProtocolEditor';
 import { IRIProtocolEditor } from './IRIProtocolEditor';
+import { SichererOrtProtocolEditor } from './SichererOrtProtocolEditor';
 import type { 
   CIPOSProtocol, 
   CIPOSDurchgang,
@@ -11,6 +12,7 @@ import type {
   ReorientierungsMethode,
   StandardProtocol,
   IRIProtocol,
+  SichererOrtProtocol,
   ProtocolType,
   StimulationTyp,
 } from '../types';
@@ -143,8 +145,74 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
     );
   }
 
+  // If protocol type was switched to Sicherer Ort, render Sicherer Ort editor
+  if (switchedProtocolType === 'Sicherer Ort') {
+    const sichererOrtProtocol: Partial<SichererOrtProtocol> = {
+      id: editedProtocol.id || crypto.randomUUID(),
+      chiffre: editedProtocol.chiffre || '',
+      datum: editedProtocol.datum || new Date().toISOString().split('T')[0],
+      protokollnummer: editedProtocol.protokollnummer || '',
+      protocolType: 'Sicherer Ort',
+      createdAt: editedProtocol.createdAt || Date.now(),
+      lastModified: Date.now(),
+      einfuehrung: {
+        einbettung_kurzbeschreibung: '',
+        psychoedukation_gegeben: null,
+        anker_konzept_erklaert: null,
+      },
+      findung: {
+        ort_typ: null,
+        ort_nennung: '',
+        gefuehl_beim_ort: '',
+        koerperstelle_gefuehl: '',
+      },
+      set1: {
+        bls_durchgefuehrt: null,
+        stimulation_art: null,
+        reaktion_nach_set: null,
+        reaktion_beschreibung: '',
+        interpretation_fall: null,
+      },
+      set2: {
+        bls_durchgefuehrt: null,
+        reaktion_nach_set: null,
+      },
+      wortarbeit: {
+        wort_fuer_ort: '',
+        set3_bls_durchgefuehrt: null,
+        set3_patient_denkt_wort_ort: null,
+        set3_reaktion: '',
+        set4_durchgefuehrt: null,
+      },
+      transfer: {
+        anleitung_durchgefuehrt: null,
+        patient_erreicht_ort: null,
+        reaktion_beschreibung: '',
+        alltag_nutzbar: null,
+        alltag_hinweise: '',
+      },
+      abschluss: {
+        subjektiver_zustand: [],
+        koerperliche_wahrnehmung: '',
+        stabilisierung_ausreichend: null,
+      },
+      therapeutische_einschaetzung: {
+        eignung_sicherer_ort: null,
+        besondere_beobachtungen: '',
+        planung_weitere_sitzungen: '',
+      },
+    };
+    return (
+      <SichererOrtProtocolEditor
+        protocol={sichererOrtProtocol as SichererOrtProtocol}
+        onSave={onSave}
+        onCancel={onCancel}
+      />
+    );
+  }
+
   // If protocol type was switched to a standard type, render standard editor
-  if (switchedProtocolType && switchedProtocolType !== 'IRI' && switchedProtocolType !== 'CIPOS') {
+  if (switchedProtocolType && switchedProtocolType !== 'IRI' && switchedProtocolType !== 'CIPOS' && switchedProtocolType !== 'Sicherer Ort') {
     const standardProtocol: Partial<StandardProtocol> = {
       id: editedProtocol.id || crypto.randomUUID(),
       chiffre: editedProtocol.chiffre || '',

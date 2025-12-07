@@ -346,11 +346,173 @@ export function createEmptyCIPOSData(): Omit<CIPOSProtocol, keyof ProtocolMetada
 }
 
 // =============================================================
+// Sicherer Ort Protocol Types
+// =============================================================
+
+// Section 2: Einführung in die Übung
+export interface SichererOrtEinfuehrung {
+  einbettung_kurzbeschreibung: string; // Warum wurde die Übung heute gewählt?
+  psychoedukation_gegeben: 'ja' | 'nein' | null;
+  psychoedukation_kommentar?: string;
+  anker_konzept_erklaert: boolean | null;
+}
+
+// Section 3: Findung des Wohlfühlortes
+export type OrtTyp = 'fantasieort' | 'realer_vergangenheit' | 'realer_gegenwart';
+
+export interface SichererOrtFindung {
+  ort_typ: OrtTyp | null;
+  ort_nennung: string; // Kurzbeschreibung des Ortes
+  gefuehl_beim_ort: string; // Was für ein Gefühl kommt auf?
+  koerperstelle_gefuehl: string; // Wo wird das Gefühl gespürt?
+}
+
+// Section 4: 1. Set BLS
+export type BLSReaktion = 'positiv' | 'keine' | 'negativ';
+export type SichererOrtStimulationTyp = 'augenbewegungen' | 'taps' | 'auditiv' | 'anderes';
+
+export interface SichererOrtSet1 {
+  bls_durchgefuehrt: boolean | null;
+  stimulation_art: SichererOrtStimulationTyp | null;
+  stimulation_art_sonstiges?: string;
+  reaktion_nach_set: BLSReaktion | null;
+  reaktion_beschreibung: string;
+  interpretation_fall: 'fall1_weiter' | 'fall2_abbruch' | null;
+  fall2_grund?: 'ort_ungeeignet' | 'stimulation_nicht_tolerierbar' | 'weitere_stabilisierung' | null;
+  fall2_kommentar?: string;
+}
+
+// Section 5: 2. Set (nur bei passender Reaktion auf Set 1)
+export interface SichererOrtSet2 {
+  bls_durchgefuehrt: boolean | null;
+  reaktion_nach_set: BLSReaktion | null;
+  kommentar?: string;
+}
+
+// Section 6: Ressourcenanker – Wortarbeit
+export interface SichererOrtWortarbeit {
+  wort_fuer_ort: string; // Wort, das mit dem Ort verbunden wird
+  set3_bls_durchgefuehrt: boolean | null;
+  set3_patient_denkt_wort_ort: boolean | null;
+  set3_reaktion: string;
+  set4_durchgefuehrt: boolean | null;
+  set4_reaktion?: string;
+}
+
+// Section 7: Transfer in den Alltag
+export interface SichererOrtTransfer {
+  anleitung_durchgefuehrt: boolean | null;
+  patient_erreicht_ort: 'ja' | 'teilweise' | 'nein' | null;
+  reaktion_beschreibung: string;
+  alltag_nutzbar: 'ja' | 'nein' | 'unsicher' | null;
+  alltag_hinweise: string;
+}
+
+// Section 8: Abschluss der Übung
+export type SubjektiverZustand = 'ruhiger' | 'verbundener' | 'stabiler' | 'unveraendert' | 'dysreguliert';
+
+export interface SichererOrtAbschluss {
+  subjektiver_zustand: SubjektiverZustand[];
+  koerperliche_wahrnehmung: string;
+  stabilisierung_ausreichend: boolean | null;
+  weitere_techniken?: string;
+}
+
+// Section 9: Therapeutische Einschätzung
+export type EignungEinschaetzung = 'geeignet' | 'bedingt_geeignet' | 'nicht_geeignet' | 'weiter_explorieren';
+
+export interface SichererOrtTherapeutischeEinschaetzung {
+  eignung_sicherer_ort: EignungEinschaetzung | null;
+  besondere_beobachtungen: string;
+  planung_weitere_sitzungen: string;
+  signatur_therapeut?: string;
+}
+
+// Complete Sicherer Ort Protocol
+export interface SichererOrtProtocol extends ProtocolMetadata {
+  // Section 2: Einführung
+  einfuehrung: SichererOrtEinfuehrung;
+  
+  // Section 3: Findung des Ortes
+  findung: SichererOrtFindung;
+  
+  // Section 4: 1. Set BLS
+  set1: SichererOrtSet1;
+  
+  // Section 5: 2. Set
+  set2: SichererOrtSet2;
+  
+  // Section 6: Wortarbeit
+  wortarbeit: SichererOrtWortarbeit;
+  
+  // Section 7: Transfer
+  transfer: SichererOrtTransfer;
+  
+  // Section 8: Abschluss
+  abschluss: SichererOrtAbschluss;
+  
+  // Section 9: Therapeutische Einschätzung
+  therapeutische_einschaetzung: SichererOrtTherapeutischeEinschaetzung;
+}
+
+// Default empty Sicherer Ort protocol data
+export function createEmptySichererOrtData(): Omit<SichererOrtProtocol, keyof ProtocolMetadata> {
+  return {
+    einfuehrung: {
+      einbettung_kurzbeschreibung: '',
+      psychoedukation_gegeben: null,
+      anker_konzept_erklaert: null,
+    },
+    findung: {
+      ort_typ: null,
+      ort_nennung: '',
+      gefuehl_beim_ort: '',
+      koerperstelle_gefuehl: '',
+    },
+    set1: {
+      bls_durchgefuehrt: null,
+      stimulation_art: null,
+      reaktion_nach_set: null,
+      reaktion_beschreibung: '',
+      interpretation_fall: null,
+    },
+    set2: {
+      bls_durchgefuehrt: null,
+      reaktion_nach_set: null,
+    },
+    wortarbeit: {
+      wort_fuer_ort: '',
+      set3_bls_durchgefuehrt: null,
+      set3_patient_denkt_wort_ort: null,
+      set3_reaktion: '',
+      set4_durchgefuehrt: null,
+    },
+    transfer: {
+      anleitung_durchgefuehrt: null,
+      patient_erreicht_ort: null,
+      reaktion_beschreibung: '',
+      alltag_nutzbar: null,
+      alltag_hinweise: '',
+    },
+    abschluss: {
+      subjektiver_zustand: [],
+      koerperliche_wahrnehmung: '',
+      stabilisierung_ausreichend: null,
+    },
+    therapeutische_einschaetzung: {
+      eignung_sicherer_ort: null,
+      besondere_beobachtungen: '',
+      planung_weitere_sitzungen: '',
+    },
+  };
+}
+
+// =============================================================
 // Union Types for Compatibility
 // =============================================================
 
 // Union type for all protocol types
-export type Protocol = StandardProtocol | IRIProtocol | CIPOSProtocol;
+export type Protocol = StandardProtocol | IRIProtocol | CIPOSProtocol | SichererOrtProtocol;
 
 // Type guard to check if protocol is IRI
 export function isIRIProtocol(protocol: Protocol): protocol is IRIProtocol {
@@ -362,9 +524,14 @@ export function isCIPOSProtocol(protocol: Protocol): protocol is CIPOSProtocol {
   return protocol.protocolType === 'CIPOS';
 }
 
+// Type guard to check if protocol is Sicherer Ort
+export function isSichererOrtProtocol(protocol: Protocol): protocol is SichererOrtProtocol {
+  return protocol.protocolType === 'Sicherer Ort';
+}
+
 // Type guard to check if protocol is Standard
 export function isStandardProtocol(protocol: Protocol): protocol is StandardProtocol {
-  return protocol.protocolType !== 'IRI' && protocol.protocolType !== 'CIPOS';
+  return protocol.protocolType !== 'IRI' && protocol.protocolType !== 'CIPOS' && protocol.protocolType !== 'Sicherer Ort';
 }
 
 export interface ProtocolListItem {
