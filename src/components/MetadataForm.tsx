@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Input, Select, Card } from './ui';
+import { SparklesIcon } from './icons';
 import type { ProtocolMetadata, ProtocolType } from '../types';
 import { PROTOCOL_TYPES } from '../constants';
+import { getRandomChiffre, getRandomDate, getRandomProtocolNumber } from '../utils/testData';
 
 // Confirm Modal for Protocol Type Change
 interface ConfirmTypeChangeModalProps {
@@ -138,9 +140,31 @@ export const MetadataForm: React.FC<MetadataFormProps> = ({ metadata, onChange, 
     setConfirmModal({ isOpen: false, fromType: '', toType: '' });
   };
 
+  const handleFillTestData = () => {
+    onChange({
+      ...metadata,
+      chiffre: getRandomChiffre(),
+      datum: getRandomDate(),
+      protokollnummer: getRandomProtocolNumber(),
+    });
+  };
+
   return (
     <>
-      <Card title="Protokoll-Metadaten" className="mb-6">
+      <Card className="mb-6">
+        {/* Header with title and test data button */}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-on-surface-strong">Protokoll-Metadaten</h2>
+          <button
+            type="button"
+            onClick={handleFillTestData}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
+            title="Metadaten mit Testdaten füllen"
+          >
+            <SparklesIcon />
+            Testdaten einfügen
+          </button>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             label="Chiffre *"
