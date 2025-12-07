@@ -84,6 +84,7 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
         },
         set2: {
           bls_durchgefuehrt: null as boolean | null,
+          stimulation_art: null as SichererOrtStimulationTyp | null,
           reaktion_nach_set: null as BLSReaktion | null,
         },
         wortarbeit: {
@@ -416,6 +417,7 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
           ...editedProtocol,
           set2: {
             bls_durchgefuehrt: true,
+            stimulation_art: getRandomItem(stimulationArten),
             reaktion_nach_set: getRandomItem(reaktionen),
             kommentar: 'Verstärkung des positiven Gefühls, Ort wird noch klarer.',
           },
@@ -639,7 +641,7 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
       <Card className="mb-6 border-l-4 border-yellow-500">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-lg font-bold text-yellow-400">4. 1. Set Bilaterale Stimulation</h2>
+            <h2 className="text-lg font-bold text-yellow-400">4. Set Bilaterale Stimulation</h2>
             <p className="text-sm text-muted">(langsam, 5–10 ABW, ca. 0,5 Hz)</p>
           </div>
           <button
@@ -677,7 +679,7 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
         {editedProtocol.set1?.bls_durchgefuehrt && (
           <>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-on-surface mb-2">Art der Stimulation</label>
+              <label className="block text-sm font-medium text-on-surface mb-2">4.1 Art der Stimulation</label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {SICHERER_ORT_STIMULATION_OPTIONS.map((option) => (
                   <label key={option.value} className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-surface-alt">
@@ -703,7 +705,7 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-on-surface mb-2">Reaktion nach Set</label>
+              <label className="block text-sm font-medium text-on-surface mb-2">4.2 Reaktion nach Set</label>
               <div className="flex flex-wrap gap-4">
                 {BLS_REAKTION_OPTIONS.map((option) => (
                   <label key={option.value} className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-surface-alt">
@@ -724,7 +726,7 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-on-surface mb-2">Beschreibung der Veränderung</label>
+              <label className="block text-sm font-medium text-on-surface mb-2">4.3 Beschreibung der Veränderung</label>
               <textarea
                 value={editedProtocol.set1?.reaktion_beschreibung || ''}
                 onChange={(e) => updateNestedField('set1', 'reaktion_beschreibung', e.target.value)}
@@ -734,7 +736,7 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
             </div>
 
             <div className="mb-4 p-4 bg-surface-alt rounded-lg border border-muted">
-              <label className="block text-sm font-medium text-on-surface mb-3">Interpretation / weitere Schritte</label>
+              <label className="block text-sm font-medium text-on-surface mb-3">4.4 Interpretation / weitere Schritte</label>
               <div className="space-y-3">
                 <label className="flex items-start gap-2 cursor-pointer p-2 rounded hover:bg-background">
                   <input
@@ -798,12 +800,11 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
         )}
       </Card>
 
-      {/* Section 5: 2. Set (nur wenn passende Reaktion auf Set 1) */}
-      {showSet2 && (
-        <Card className="mb-6 border-l-4 border-yellow-500">
+      {/* Section 5: 2. Set */}
+      <Card className="mb-6 border-l-4 border-yellow-500">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-bold text-yellow-400">5. 2. Set</h2>
+              <h2 className="text-lg font-bold text-yellow-400">5. Set</h2>
               <p className="text-sm text-muted">(nur bei Fall 1: keine/positive Veränderung auf Set 1)</p>
             </div>
             <button
@@ -841,7 +842,33 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
           {editedProtocol.set2?.bls_durchgefuehrt && (
             <>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-on-surface mb-2">Reaktion nach Set</label>
+                <label className="block text-sm font-medium text-on-surface mb-2">5.1 Art der Stimulation</label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {SICHERER_ORT_STIMULATION_OPTIONS.map((option) => (
+                    <label key={option.value} className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-surface-alt">
+                      <input
+                        type="radio"
+                        name="set2_stimulation_art"
+                        checked={editedProtocol.set2?.stimulation_art === option.value}
+                        onChange={() => updateNestedField('set2', 'stimulation_art', option.value)}
+                        className="w-4 h-4 text-yellow-500 focus:ring-yellow-500"
+                      />
+                      <span className="text-sm text-on-surface">{option.label}</span>
+                    </label>
+                  ))}
+                </div>
+                {editedProtocol.set2?.stimulation_art === 'anderes' && (
+                  <Input
+                    className="mt-2"
+                    placeholder="Beschreiben Sie die Stimulationsart..."
+                    value={editedProtocol.set2?.stimulation_art_sonstiges || ''}
+                    onChange={(e) => updateNestedField('set2', 'stimulation_art_sonstiges', e.target.value)}
+                  />
+                )}
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-on-surface mb-2">5.2 Reaktion nach Set</label>
                 <div className="flex flex-wrap gap-4">
                   {BLS_REAKTION_OPTIONS.map((option) => (
                     <label key={option.value} className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-surface-alt">
@@ -862,7 +889,7 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-on-surface mb-2">Kommentar / Beobachtung</label>
+                <label className="block text-sm font-medium text-on-surface mb-2">5.3 Kommentar / Beobachtung</label>
                 <textarea
                   value={editedProtocol.set2?.kommentar || ''}
                   onChange={(e) => updateNestedField('set2', 'kommentar', e.target.value)}
@@ -873,11 +900,9 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
             </>
           )}
         </Card>
-      )}
 
       {/* Section 6: Ressourcenanker – Wortarbeit */}
-      {showWortarbeit && (
-        <Card className="mb-6 border-l-4 border-yellow-500">
+      <Card className="mb-6 border-l-4 border-yellow-500">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-lg font-bold text-yellow-400">6. Ressourcenanker – Wortarbeit</h2>
@@ -999,7 +1024,6 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
             )}
           </div>
         </Card>
-      )}
 
       {/* Section 7: Transfer in den Alltag */}
       <Card className="mb-6 border-l-4 border-yellow-500">

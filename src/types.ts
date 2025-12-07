@@ -385,6 +385,8 @@ export interface SichererOrtSet1 {
 // Section 5: 2. Set (nur bei passender Reaktion auf Set 1)
 export interface SichererOrtSet2 {
   bls_durchgefuehrt: boolean | null;
+  stimulation_art: SichererOrtStimulationTyp | null;
+  stimulation_art_sonstiges?: string;
   reaktion_nach_set: BLSReaktion | null;
   kommentar?: string;
 }
@@ -478,6 +480,7 @@ export function createEmptySichererOrtData(): Omit<SichererOrtProtocol, keyof Pr
     },
     set2: {
       bls_durchgefuehrt: null,
+      stimulation_art: null,
       reaktion_nach_set: null,
     },
     wortarbeit: {
