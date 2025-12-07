@@ -387,6 +387,8 @@ export interface SichererOrtSet2 {
   bls_durchgefuehrt: boolean | null;
   stimulation_art: SichererOrtStimulationTyp | null;
   stimulation_art_sonstiges?: string;
+  anzahl_bewegungen?: string;
+  veraenderung_beschreibung?: string;
   reaktion_nach_set: BLSReaktion | null;
   kommentar?: string;
 }

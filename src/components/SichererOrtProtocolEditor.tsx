@@ -766,6 +766,59 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
                 </label>
               </div>
               
+              {editedProtocol.set1?.interpretation_fall === 'fall1_weiter' && (
+                <div className="mt-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                  <label className="block text-sm font-medium text-green-400 mb-3">Einstellungen für 2. Set:</label>
+                  
+                  <div className="mb-4">
+                    <label className="block text-sm text-on-surface mb-2">Art der Stimulation:</label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {SICHERER_ORT_STIMULATION_OPTIONS.map((option) => (
+                        <label key={option.value} className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-background">
+                          <input
+                            type="radio"
+                            name="set2_stimulation_art_vorauswahl"
+                            checked={editedProtocol.set2?.stimulation_art === option.value}
+                            onChange={() => updateNestedField('set2', 'stimulation_art', option.value)}
+                            className="w-4 h-4 text-green-500 focus:ring-green-500"
+                          />
+                          <span className="text-sm text-on-surface">{option.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                    {editedProtocol.set2?.stimulation_art === 'anderes' && (
+                      <Input
+                        className="mt-2"
+                        placeholder="Beschreiben Sie die Stimulationsart..."
+                        value={editedProtocol.set2?.stimulation_art_sonstiges || ''}
+                        onChange={(e) => updateNestedField('set2', 'stimulation_art_sonstiges', e.target.value)}
+                      />
+                    )}
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-sm text-on-surface mb-2">Anzahl Bewegungen / Durchgänge:</label>
+                    <Input
+                      type="number"
+                      min="1"
+                      placeholder="z.B. 5-10"
+                      value={editedProtocol.set2?.anzahl_bewegungen || ''}
+                      onChange={(e) => updateNestedField('set2', 'anzahl_bewegungen', e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-on-surface mb-2">Beschreibung der Veränderung:</label>
+                    <textarea
+                      value={editedProtocol.set2?.veraenderung_beschreibung || ''}
+                      onChange={(e) => updateNestedField('set2', 'veraenderung_beschreibung', e.target.value)}
+                      className="w-full bg-background text-on-surface border border-green-500/30 rounded-md px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none resize-y min-h-[60px]"
+                      placeholder="Beschreiben Sie die Veränderung nach dem 2. Set..."
+                    />
+                  </div>
+                </div>
+              )}
+
               {editedProtocol.set1?.interpretation_fall === 'fall2_abbruch' && (
                 <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
                   <label className="block text-sm font-medium text-red-400 mb-2">Grund für negative Veränderung:</label>
