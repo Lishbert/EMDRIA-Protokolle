@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Card } from './ui';
-import { SaveIcon, XMarkIcon, DownloadIcon, PrinterIcon, SparklesIcon } from './icons';
+import { SaveIcon, XMarkIcon, PrinterIcon, SparklesIcon } from './icons';
 import { MetadataForm } from './MetadataForm';
 import { ChannelEditor } from './ChannelEditor';
 import { IRIProtocolEditor } from './IRIProtocolEditor';
@@ -8,7 +8,7 @@ import { CIPOSProtocolEditor } from './CIPOSProtocolEditor';
 import { SichererOrtProtocolEditor } from './SichererOrtProtocolEditor';
 import type { Protocol, StandardProtocol, IRIProtocol, CIPOSProtocol, SichererOrtProtocol, ProtocolType, isIRIProtocol, isStandardProtocol, isCIPOSProtocol, isSichererOrtProtocol } from '../types';
 import { saveProtocol } from '../utils/storage';
-import { exportProtocolAsJSON, exportProtocolAsPDF } from '../utils/export';
+import { exportProtocolAsPDF } from '../utils/export';
 import { DEFAULT_PROTOCOL_TYPE } from '../constants';
 import { getRandomStartKnoten, getRandomChannelItem } from '../utils/testData';
 
@@ -380,17 +380,6 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
     }
   };
 
-  const handleExportJSON = () => {
-    if (!editedProtocol.id) return;
-    try {
-      const protocolToExport = editedProtocol as StandardProtocol;
-      exportProtocolAsJSON(protocolToExport);
-    } catch (error) {
-      console.error('Error exporting JSON:', error);
-      alert('Fehler beim Exportieren des Protokolls.');
-    }
-  };
-
   const handleExportPDF = () => {
     if (!editedProtocol.id) return;
     try {
@@ -550,11 +539,6 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
 
           {editedProtocol.id && (
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button onClick={handleExportJSON} variant="primary" disabled={hasUnsavedChanges}>
-                <DownloadIcon />
-                JSON Export
-              </Button>
-              
               <Button onClick={handleExportPDF} variant="primary" disabled={hasUnsavedChanges}>
                 <PrinterIcon />
                 PDF Export

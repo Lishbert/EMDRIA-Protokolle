@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Card, Input, Select } from './ui';
-import { SaveIcon, XMarkIcon, DownloadIcon, PrinterIcon, SparklesIcon } from './icons';
+import { SaveIcon, XMarkIcon, PrinterIcon, SparklesIcon } from './icons';
 import { MetadataForm } from './MetadataForm';
 import { StandardProtocolEditor } from './ProtocolEditor';
 import { IRIProtocolEditor } from './IRIProtocolEditor';
@@ -20,7 +20,7 @@ import type {
   createEmptySichererOrtData,
 } from '../types';
 import { saveProtocol } from '../utils/storage';
-import { exportProtocolAsJSON, exportProtocolAsPDF } from '../utils/export';
+import { exportProtocolAsPDF } from '../utils/export';
 import {
   SICHERER_ORT_TYP_OPTIONS,
   SICHERER_ORT_STIMULATION_OPTIONS,
@@ -332,16 +332,6 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
     } catch (error) {
       console.error('Error saving protocol:', error);
       setSaveStatus('error');
-    }
-  };
-
-  const handleExportJSON = () => {
-    if (!editedProtocol.id) return;
-    try {
-      exportProtocolAsJSON(editedProtocol as SichererOrtProtocol);
-    } catch (error) {
-      console.error('Error exporting JSON:', error);
-      alert('Fehler beim Exportieren des Protokolls.');
     }
   };
 
@@ -1353,11 +1343,6 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
 
           {editedProtocol.id && (
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button onClick={handleExportJSON} variant="primary" disabled={hasUnsavedChanges}>
-                <DownloadIcon />
-                JSON Export
-              </Button>
-              
               <Button onClick={handleExportPDF} variant="primary" disabled={hasUnsavedChanges}>
                 <PrinterIcon />
                 PDF Export
