@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Input, Select, Card } from './ui';
+import { Input, DateInput, Select, Card } from './ui';
 import { SparklesIcon } from './icons';
 import type { ProtocolMetadata, ProtocolType } from '../types';
 import { PROTOCOL_TYPES } from '../constants';
@@ -175,9 +175,8 @@ export const MetadataForm: React.FC<MetadataFormProps> = ({ metadata, onChange, 
             required
           />
           
-          <Input
+          <DateInput
             label="Datum *"
-            type="date"
             value={metadata.datum || ''}
             onChange={(e) => handleChange('datum', e.target.value)}
             error={errors.datum}
