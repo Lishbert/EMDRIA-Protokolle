@@ -96,20 +96,6 @@ export const ProtocolList: React.FC<ProtocolListProps> = ({
     return filtered;
   }, [protocols, filterType, searchTerm]);
 
-  // Group protocols by type for statistics
-  const protocolsByType = useMemo(() => {
-    const grouped: Record<ProtocolType, number> = {
-      'Reprozessieren': 0,
-      'IRI': 0,
-      'CIPOS': 0,
-      'Sicherer Ort': 0,
-    };
-    protocols.forEach(p => {
-      grouped[p.protocolType] = (grouped[p.protocolType] || 0) + 1;
-    });
-    return grouped;
-  }, [protocols]);
-
   // Group filtered protocols by Chiffre
   const protocolsByChiffre = useMemo(() => {
     const grouped: Record<string, ProtocolListItem[]> = {};
@@ -228,19 +214,6 @@ export const ProtocolList: React.FC<ProtocolListProps> = ({
             </div>
           </div>
         </div>
-
-        {/* Statistics */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-6">
-          {PROTOCOL_TYPES.map(type => (
-            <div
-              key={type}
-              className={`bg-gradient-to-br ${PROTOCOL_TYPE_COLORS[type]} p-3 rounded-lg text-white text-center`}
-            >
-              <div className="text-2xl font-bold">{protocolsByType[type]}</div>
-              <div className="text-xs opacity-90 mt-1">{type}</div>
-            </div>
-          ))}
-        </div>
       </Card>
 
       {/* Search and Filter */}
@@ -280,7 +253,7 @@ export const ProtocolList: React.FC<ProtocolListProps> = ({
                 <option value="all">Alle Typen</option>
                 {PROTOCOL_TYPES.map(type => (
                   <option key={type} value={type}>
-                    {type} ({protocolsByType[type]})
+                    {type}
                   </option>
                 ))}
               </Select>
