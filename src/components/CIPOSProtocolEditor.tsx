@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Card, Input, Select } from './ui';
-import { SaveIcon, XMarkIcon, PrinterIcon, PlusIcon, TrashIcon, SparklesIcon } from './icons';
+import { SaveIcon, XMarkIcon, PrinterIcon, PlusIcon, TrashIcon } from './icons';
 import { MetadataForm } from './MetadataForm';
 import { StandardProtocolEditor } from './ProtocolEditor';
 import { IRIProtocolEditor } from './IRIProtocolEditor';
@@ -28,7 +28,9 @@ import {
   getRandomPercentage,
   getRandomSUD,
   getRandomBoolean,
-  getRandomBooleanOrNull,
+  getRandomChiffre,
+  getRandomDate,
+  getRandomProtocolNumber,
   SAMPLE_CIPOS_INDIKATOREN,
   SAMPLE_CIPOS_BEOBACHTUNGEN,
   SAMPLE_CIPOS_DAUER_SETS,
@@ -333,22 +335,48 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
     return Object.keys(newErrors).length === 0;
   };
 
-  // Test data fill functions for each section
-  const fillTestDataGegenwartsorientierungVorher = () => {
+  // Fill all test data at once
+  const handleFillAllTestData = () => {
+    const methoden: CIPOSStimulationMethode[] = ['visuell', 'taktil', 'auditiv', 'kombination'];
+    const dauerOptions = [5, 10, 15, 20, 30];
+    const reorientierungOptions: ReorientierungsMethode[] = [
+      'augenkontakt', 'raumwahrnehmung', 'koerperwahrnehmung', 'atemuebung',
+      'sinneswahrnehmung', 'gegenstaende_benennen', 'gegenstand_halten', 'orientierungsfragen'
+    ];
+    
+    // Generate 1-3 durchgänge
+    const numDurchgaenge = Math.floor(Math.random() * 3) + 1;
+    const durchgaenge: CIPOSDurchgang[] = Array.from({ length: numDurchgaenge }, (_, i) => {
+      const selectedMethoden = reorientierungOptions
+        .filter(() => Math.random() > 0.6)
+        .slice(0, Math.floor(Math.random() * 3) + 2);
+      return {
+        id: crypto.randomUUID(),
+        durchgang_nummer: i + 1,
+        zaehl_technik: getRandomBoolean(),
+        dauer_sekunden: getRandomItem(dauerOptions),
+        reorientierung_methoden: selectedMethoden,
+        reorientierung_freitext: Math.random() > 0.5 ? 'Individuelle Erdungsübung mit Fokus auf Füße' : '',
+        gegenwartsorientierung_nach: getRandomPercentage(60, 95),
+        stimulation_verstaerkung: i === 0 ? getRandomBoolean() : undefined,
+        bereitschaft_patient: i > 0 ? getRandomBoolean() : undefined,
+        kommentar: getRandomItem(SAMPLE_CIPOS_BEOBACHTUNGEN),
+      };
+    });
+
+    const hatProbleme = Math.random() > 0.7;
+    const hatAbbruch = Math.random() > 0.85;
+
     setEditedProtocol({
       ...editedProtocol,
+      chiffre: getRandomChiffre(),
+      datum: getRandomDate(),
+      protokollnummer: getRandomProtocolNumber(),
       gegenwartsorientierung_vorher: {
         prozent_gegenwartsorientierung: getRandomPercentage(50, 85),
         indikatoren_patient: getRandomItem(SAMPLE_CIPOS_INDIKATOREN),
         beobachtungen_therapeut: getRandomItem(SAMPLE_CIPOS_BEOBACHTUNGEN),
       },
-    });
-  };
-
-  const fillTestDataVerstaerkungGegenwart = () => {
-    const methoden: CIPOSStimulationMethode[] = ['visuell', 'taktil', 'auditiv', 'kombination'];
-    setEditedProtocol({
-      ...editedProtocol,
       verstaerkung_gegenwart: {
         stimulation_methode: getRandomItem(methoden),
         dauer_anzahl_sets: getRandomItem(SAMPLE_CIPOS_DAUER_SETS),
@@ -356,97 +384,30 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
         gegenwartsorientierung_nach_stimulation: getRandomPercentage(60, 95),
         kommentar: getRandomItem(SAMPLE_CIPOS_BEOBACHTUNGEN),
       },
-    });
-  };
-
-  const fillTestDataErsterKontakt = () => {
-    const dauerOptions = [5, 10, 15, 20, 30];
-    setEditedProtocol({
-      ...editedProtocol,
       erster_kontakt: {
         zielerinnerung_beschreibung: getRandomItem(SAMPLE_CIPOS_ZIELERINNERUNG),
         sud_vor_kontakt: getRandomSUD(4, 9),
         belastungsdauer_sekunden: getRandomItem(dauerOptions),
       },
-    });
-  };
-
-  const fillTestDataDurchgang = (durchgangId: string) => {
-    const currentDurchgaenge = editedProtocol.durchgaenge || [];
-    const durchgang = currentDurchgaenge.find((d) => d.id === durchgangId);
-    if (!durchgang) return;
-
-    const reorientierungOptions: ReorientierungsMethode[] = [
-      'augenkontakt', 'raumwahrnehmung', 'koerperwahrnehmung', 'atemuebung',
-      'sinneswahrnehmung', 'gegenstaende_benennen', 'gegenstand_halten', 'orientierungsfragen'
-    ];
-    const selectedMethoden = reorientierungOptions
-      .filter(() => Math.random() > 0.6)
-      .slice(0, Math.floor(Math.random() * 3) + 2);
-
-    const updatedDurchgang: CIPOSDurchgang = {
-      ...durchgang,
-      zaehl_technik: getRandomBoolean(),
-      dauer_sekunden: getRandomItem([5, 10, 15, 20, 30]),
-      reorientierung_methoden: selectedMethoden,
-      reorientierung_freitext: Math.random() > 0.5 ? 'Individuelle Erdungsübung mit Fokus auf Füße' : '',
-      gegenwartsorientierung_nach: getRandomPercentage(60, 95),
-      stimulation_verstaerkung: durchgang.durchgang_nummer === 1 ? getRandomBoolean() : undefined,
-      bereitschaft_patient: durchgang.durchgang_nummer > 1 ? getRandomBoolean() : undefined,
-      bereitschaft_kommentar: durchgang.durchgang_nummer > 1 && Math.random() > 0.5 ? 'Patient fühlt sich bereit für weiteren Durchgang' : '',
-      kommentar: getRandomItem(SAMPLE_CIPOS_BEOBACHTUNGEN),
-    };
-
-    const newDurchgaenge = currentDurchgaenge.map((d) =>
-      d.id === durchgangId ? updatedDurchgang : d
-    );
-    setEditedProtocol({
-      ...editedProtocol,
-      durchgaenge: newDurchgaenge,
-    });
-  };
-
-  const fillTestDataAbschlussbewertung = () => {
-    setEditedProtocol({
-      ...editedProtocol,
+      durchgaenge,
       abschlussbewertung: {
         sud_nach_letztem_durchgang: getRandomSUD(1, 5),
         rueckmeldung_erinnerung: getRandomItem(SAMPLE_CIPOS_RUECKMELDUNG_ERINNERUNG),
         rueckmeldung_koerper: getRandomItem(SAMPLE_CIPOS_RUECKMELDUNG_KOERPER),
         subjektive_sicherheit: getRandomPercentage(60, 90),
       },
-    });
-  };
-
-  const fillTestDataNachbesprechung = () => {
-    setEditedProtocol({
-      ...editedProtocol,
       nachbesprechung: {
         nachbesprechung_durchgefuehrt: getRandomBoolean(),
         hinweis_inneres_prozessieren: getRandomBoolean(),
         aufgabe_tagebuch: getRandomItem(SAMPLE_CIPOS_AUFGABE_TAGEBUCH),
         beobachtungen_therapeut: getRandomItem(SAMPLE_CIPOS_BEOBACHTUNGEN),
       },
-    });
-  };
-
-  const fillTestDataSchwierigkeiten = () => {
-    const hatProbleme = Math.random() > 0.7;
-    const hatAbbruch = Math.random() > 0.85;
-    setEditedProtocol({
-      ...editedProtocol,
       schwierigkeiten: {
         probleme_reorientierung: hatProbleme,
         stabilisierungstechniken: hatProbleme ? getRandomItem(SAMPLE_CIPOS_STABILISIERUNG) : '',
         cipos_vorzeitig_beendet: hatAbbruch,
         cipos_vorzeitig_grund: hatAbbruch ? 'Patient benötigte mehr Zeit zur Stabilisierung' : '',
       },
-    });
-  };
-
-  const fillTestDataAbschlussDokumentation = () => {
-    setEditedProtocol({
-      ...editedProtocol,
       abschluss_dokumentation: {
         gesamteinschaetzung_therapeut: getRandomItem(SAMPLE_CIPOS_GESAMTEINSCHAETZUNG),
         planung_naechste_sitzung: getRandomItem(SAMPLE_CIPOS_NAECHSTE_SITZUNG),
@@ -527,22 +488,12 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
         metadata={editedProtocol}
         onChange={handleMetadataChange}
         errors={errors}
+        onFillAllTestData={handleFillAllTestData}
       />
 
       {/* Section 2: Gegenwartsorientierung vor Beginn */}
       <Card className="mb-6 border-l-4 border-green-500">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-green-400">2. Einschätzung der Gegenwartsorientierung (vor Beginn)</h2>
-          <button
-            type="button"
-            onClick={fillTestDataGegenwartsorientierungVorher}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
-            title="Testdaten einfügen"
-          >
-            <SparklesIcon />
-            Testdaten
-          </button>
-        </div>
+        <h2 className="text-lg font-bold text-green-400 mb-4">2. Einschätzung der Gegenwartsorientierung (vor Beginn)</h2>
         
         <div className="mb-4">
           <label className="block text-sm font-medium text-on-surface mb-2">
@@ -588,18 +539,7 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
 
       {/* Section 3: Verstärkung der sicheren Gegenwart */}
       <Card className="mb-6 border-l-4 border-green-500">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-green-400">3. Verstärkung der sicheren Gegenwart – Durchführung</h2>
-          <button
-            type="button"
-            onClick={fillTestDataVerstaerkungGegenwart}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
-            title="Testdaten einfügen"
-          >
-            <SparklesIcon />
-            Testdaten
-          </button>
-        </div>
+        <h2 className="text-lg font-bold text-green-400 mb-4">3. Verstärkung der sicheren Gegenwart – Durchführung</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <Select
@@ -685,18 +625,7 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
 
       {/* Section 4: Erster Kontakt */}
       <Card className="mb-6 border-l-4 border-green-500">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-green-400">4. Erster Kontakt mit der belastenden Erinnerung</h2>
-          <button
-            type="button"
-            onClick={fillTestDataErsterKontakt}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
-            title="Testdaten einfügen"
-          >
-            <SparklesIcon />
-            Testdaten
-          </button>
-        </div>
+        <h2 className="text-lg font-bold text-green-400 mb-4">4. Erster Kontakt mit der belastenden Erinnerung</h2>
         
         <div className="mb-4">
           <label className="block text-sm font-medium text-on-surface mb-2">4.1 Beschreibung der Zielerinnerung / Auslöser</label>
@@ -762,24 +691,13 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
                 {durchgang.durchgang_nummer === 1 ? '1. Durchgang (4.4/4.5)' : 
                  durchgang.durchgang_nummer === 2 ? '2. Durchgang (5)' : '3. Durchgang (6)'}
               </span>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => fillTestDataDurchgang(durchgang.id)}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
-                  title="Testdaten für diesen Durchgang einfügen"
-                >
-                  <SparklesIcon />
-                  Testdaten
-                </button>
-                <button
-                  onClick={() => removeDurchgang(durchgang.id)}
-                  className="text-red-400 hover:text-red-300 p-1"
-                  title="Durchgang entfernen"
-                >
-                  <TrashIcon />
-                </button>
-              </div>
+              <button
+                onClick={() => removeDurchgang(durchgang.id)}
+                className="text-red-400 hover:text-red-300 p-1"
+                title="Durchgang entfernen"
+              >
+                <TrashIcon />
+              </button>
             </div>
 
             {/* Bereitschaft (für Durchgänge 2 und 3) */}
@@ -947,18 +865,7 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
 
       {/* Section 7: Abschlussbewertung */}
       <Card className="mb-6 border-l-4 border-green-500">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-green-400">7. Abschlussbewertung</h2>
-          <button
-            type="button"
-            onClick={fillTestDataAbschlussbewertung}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
-            title="Testdaten einfügen"
-          >
-            <SparklesIcon />
-            Testdaten
-          </button>
-        </div>
+        <h2 className="text-lg font-bold text-green-400 mb-4">7. Abschlussbewertung</h2>
         
         <div className="mb-4">
           <label className="block text-sm font-medium text-on-surface mb-2">7.1 SUD nach dem letzten Durchgang (0-10)</label>
@@ -1036,18 +943,7 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
 
       {/* Section 8: Nachbesprechung */}
       <Card className="mb-6 border-l-4 border-green-500">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-green-400">8. Nachbesprechung / Abschluss</h2>
-          <button
-            type="button"
-            onClick={fillTestDataNachbesprechung}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
-            title="Testdaten einfügen"
-          >
-            <SparklesIcon />
-            Testdaten
-          </button>
-        </div>
+        <h2 className="text-lg font-bold text-green-400 mb-4">8. Nachbesprechung / Abschluss</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
@@ -1115,18 +1011,7 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
 
       {/* Section 9: Schwierigkeiten */}
       <Card className="mb-6 border-l-4 border-green-500">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-green-400">9. Falls Schwierigkeiten auftraten</h2>
-          <button
-            type="button"
-            onClick={fillTestDataSchwierigkeiten}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
-            title="Testdaten einfügen"
-          >
-            <SparklesIcon />
-            Testdaten
-          </button>
-        </div>
+        <h2 className="text-lg font-bold text-green-400 mb-4">9. Falls Schwierigkeiten auftraten</h2>
         
         <div className="mb-4">
           <label className="block text-sm font-medium text-on-surface mb-2">Probleme bei der Reorientierung?</label>
@@ -1197,18 +1082,7 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
 
       {/* Section 10: Abschluss Dokumentation */}
       <Card className="mb-6 border-l-4 border-green-500">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-green-400">10. Abschluss der Dokumentation</h2>
-          <button
-            type="button"
-            onClick={fillTestDataAbschlussDokumentation}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
-            title="Testdaten einfügen"
-          >
-            <SparklesIcon />
-            Testdaten
-          </button>
-        </div>
+        <h2 className="text-lg font-bold text-green-400 mb-4">10. Abschluss der Dokumentation</h2>
         
         <div className="mb-4">
           <label className="block text-sm font-medium text-on-surface mb-2">Gesamteinschätzung der Therapeut:in</label>

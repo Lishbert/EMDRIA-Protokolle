@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Card, Input, Select } from './ui';
-import { SaveIcon, XMarkIcon, PrinterIcon, SparklesIcon } from './icons';
+import { SaveIcon, XMarkIcon, PrinterIcon } from './icons';
 import { MetadataForm } from './MetadataForm';
 import { StandardProtocolEditor } from './ProtocolEditor';
 import { IRIProtocolEditor } from './IRIProtocolEditor';
@@ -28,22 +28,7 @@ import {
   SUBJEKTIVER_ZUSTAND_OPTIONS,
   EIGNUNG_EINSCHAETZUNG_OPTIONS,
 } from '../constants';
-import {
-  generateSichererOrtTestProtocol,
-  getRandomItem,
-  getRandomItems,
-  getRandomBoolean,
-  SAMPLE_SICHERER_ORT_EINBETTUNG,
-  SAMPLE_SICHERER_ORT_ORTE,
-  SAMPLE_KOERPERSTELLEN_GEFUEHL,
-  SAMPLE_BLS_REAKTION_BESCHREIBUNG,
-  SAMPLE_WORTE_FUER_ORT,
-  SAMPLE_TRANSFER_REAKTION,
-  SAMPLE_ALLTAG_HINWEISE,
-  SAMPLE_KOERPERLICHE_WAHRNEHMUNG_ABSCHLUSS,
-  SAMPLE_BESONDERE_BEOBACHTUNGEN,
-  SAMPLE_PLANUNG_WEITERE_SITZUNGEN,
-} from '../utils/testData';
+import { generateSichererOrtTestProtocol } from '../utils/testData';
 
 interface SichererOrtProtocolEditorProps {
   protocol: SichererOrtProtocol | null;
@@ -345,121 +330,13 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
     }
   };
 
-  const handleFillTestData = () => {
-    const testData = generateSichererOrtTestProtocol(
-      editedProtocol.chiffre || undefined,
-      editedProtocol.datum || undefined
-    );
+  const handleFillAllTestData = () => {
+    const testData = generateSichererOrtTestProtocol();
     setEditedProtocol({
-      ...editedProtocol,
       ...testData,
-      id: editedProtocol.id,
-      chiffre: editedProtocol.chiffre || testData.chiffre,
-      datum: editedProtocol.datum || testData.datum,
-      protokollnummer: editedProtocol.protokollnummer || testData.protokollnummer,
+      id: editedProtocol.id || testData.id,
+      createdAt: editedProtocol.createdAt || testData.createdAt,
     });
-  };
-
-  const fillSectionTestData = (section: keyof SichererOrtProtocol) => {
-    const stimulationArten: SichererOrtStimulationTyp[] = ['augenbewegungen', 'taps', 'auditiv'];
-    const reaktionen: BLSReaktion[] = ['positiv', 'keine'];
-    const subjektiveZustaende: SubjektiverZustand[] = ['ruhiger', 'verbundener', 'stabiler'];
-    const eignungen: EignungEinschaetzung[] = ['geeignet', 'bedingt_geeignet'];
-
-    switch (section) {
-      case 'einfuehrung':
-        setEditedProtocol({
-          ...editedProtocol,
-          einfuehrung: {
-            einbettung_kurzbeschreibung: getRandomItem(SAMPLE_SICHERER_ORT_EINBETTUNG),
-            psychoedukation_gegeben: getRandomBoolean() ? 'ja' : 'nein',
-            psychoedukation_kommentar: 'Konzept des sicheren Ortes als innere Ressource erklärt.',
-            anker_konzept_erklaert: getRandomBoolean(),
-          },
-        });
-        break;
-      case 'findung':
-        const ortData = getRandomItem(SAMPLE_SICHERER_ORT_ORTE);
-        setEditedProtocol({
-          ...editedProtocol,
-          findung: {
-            ort_typ: ortData.typ,
-            ort_nennung: ortData.name,
-            gefuehl_beim_ort: ortData.gefuehl,
-            koerperstelle_gefuehl: getRandomItem(SAMPLE_KOERPERSTELLEN_GEFUEHL),
-          },
-        });
-        break;
-      case 'set1':
-        setEditedProtocol({
-          ...editedProtocol,
-          set1: {
-            bls_durchgefuehrt: true,
-            stimulation_art: getRandomItem(stimulationArten),
-            reaktion_nach_set: getRandomItem(reaktionen),
-            reaktion_beschreibung: getRandomItem(SAMPLE_BLS_REAKTION_BESCHREIBUNG),
-            interpretation_fall: 'fall1_weiter',
-          },
-        });
-        break;
-      case 'set2':
-        setEditedProtocol({
-          ...editedProtocol,
-          set2: {
-            bls_durchgefuehrt: true,
-            stimulation_art: getRandomItem(stimulationArten),
-            reaktion_nach_set: getRandomItem(reaktionen),
-            kommentar: 'Verstärkung des positiven Gefühls, Ort wird noch klarer.',
-          },
-        });
-        break;
-      case 'wortarbeit':
-        setEditedProtocol({
-          ...editedProtocol,
-          wortarbeit: {
-            wort_fuer_ort: getRandomItem(SAMPLE_WORTE_FUER_ORT),
-            set3_bls_durchgefuehrt: true,
-            set3_patient_denkt_wort_ort: true,
-            set3_reaktion: 'Wort verstärkt den Zugang zum Gefühl deutlich.',
-            set4_durchgefuehrt: getRandomBoolean(),
-            set4_reaktion: 'Weitere Vertiefung der Verbindung Wort-Ort-Gefühl.',
-          },
-        });
-        break;
-      case 'transfer':
-        setEditedProtocol({
-          ...editedProtocol,
-          transfer: {
-            anleitung_durchgefuehrt: true,
-            patient_erreicht_ort: 'ja',
-            reaktion_beschreibung: getRandomItem(SAMPLE_TRANSFER_REAKTION),
-            alltag_nutzbar: 'ja',
-            alltag_hinweise: getRandomItem(SAMPLE_ALLTAG_HINWEISE),
-          },
-        });
-        break;
-      case 'abschluss':
-        setEditedProtocol({
-          ...editedProtocol,
-          abschluss: {
-            subjektiver_zustand: getRandomItems(subjektiveZustaende, 1, 3) as SubjektiverZustand[],
-            koerperliche_wahrnehmung: getRandomItem(SAMPLE_KOERPERLICHE_WAHRNEHMUNG_ABSCHLUSS),
-            stabilisierung_ausreichend: true,
-          },
-        });
-        break;
-      case 'therapeutische_einschaetzung':
-        setEditedProtocol({
-          ...editedProtocol,
-          therapeutische_einschaetzung: {
-            eignung_sicherer_ort: getRandomItem(eignungen),
-            besondere_beobachtungen: getRandomItem(SAMPLE_BESONDERE_BEOBACHTUNGEN),
-            planung_weitere_sitzungen: getRandomItem(SAMPLE_PLANUNG_WEITERE_SITZUNGEN),
-            signatur_therapeut: `Dr. Muster, ${new Date().toLocaleDateString('de-DE')}`,
-          },
-        });
-        break;
-    }
   };
 
   const hasUnsavedChanges = saveStatus !== 'saved';
@@ -480,22 +357,12 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
         metadata={editedProtocol}
         onChange={handleMetadataChange}
         errors={errors}
+        onFillAllTestData={handleFillAllTestData}
       />
 
       {/* Section 2: Einführung in die Übung */}
       <Card className="mb-6 border-l-4 border-yellow-500">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-yellow-400">2. Einführung in die Übung</h2>
-          <button
-            type="button"
-            onClick={() => fillSectionTestData('einfuehrung')}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
-            title="Testdaten für Einführung einfügen"
-          >
-            <SparklesIcon />
-            Testdaten einfügen
-          </button>
-        </div>
+        <h2 className="text-lg font-bold text-yellow-400 mb-4">2. Einführung in die Übung</h2>
         
         <div className="mb-4">
           <label className="block text-sm font-medium text-on-surface mb-2">
@@ -559,18 +426,7 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
 
       {/* Section 3: Findung des Wohlfühlortes / Sicheren Ortes */}
       <Card className="mb-6 border-l-4 border-yellow-500">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-yellow-400">3. Findung des Wohlfühlortes / Sicheren Ortes</h2>
-          <button
-            type="button"
-            onClick={() => fillSectionTestData('findung')}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
-            title="Testdaten für Findung einfügen"
-          >
-            <SparklesIcon />
-            Testdaten einfügen
-          </button>
-        </div>
+        <h2 className="text-lg font-bold text-yellow-400 mb-4">3. Findung des Wohlfühlortes / Sicheren Ortes</h2>
         
         <div className="mb-4">
           <label className="block text-sm font-medium text-on-surface mb-2">3.1 Art des Ortes (Typ)</label>
@@ -629,20 +485,9 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
 
       {/* Section 4: 1. Set Bilaterale Stimulation */}
       <Card className="mb-6 border-l-4 border-yellow-500">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-lg font-bold text-yellow-400">4. Set Bilaterale Stimulation</h2>
-            <p className="text-sm text-muted">(langsam, 5–10 ABW, ca. 0,5 Hz)</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => fillSectionTestData('set1')}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
-            title="Testdaten für Set 1 einfügen"
-          >
-            <SparklesIcon />
-            Testdaten einfügen
-          </button>
+        <div className="mb-4">
+          <h2 className="text-lg font-bold text-yellow-400">4. Set Bilaterale Stimulation</h2>
+          <p className="text-sm text-muted">(langsam, 5–10 ABW, ca. 0,5 Hz)</p>
         </div>
         
         <div className="mb-4">
@@ -845,20 +690,9 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
 
       {/* Section 5: 2. Set */}
       <Card className="mb-6 border-l-4 border-yellow-500">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-lg font-bold text-yellow-400">5. Set</h2>
-              <p className="text-sm text-muted">(nur bei Fall 1: keine/positive Veränderung auf Set 1)</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => fillSectionTestData('set2')}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
-              title="Testdaten für Set 2 einfügen"
-            >
-              <SparklesIcon />
-              Testdaten einfügen
-            </button>
+          <div className="mb-4">
+            <h2 className="text-lg font-bold text-yellow-400">5. Set</h2>
+            <p className="text-sm text-muted">(nur bei Fall 1: keine/positive Veränderung auf Set 1)</p>
           </div>
           
           <div className="mb-4">
@@ -946,20 +780,9 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
 
       {/* Section 6: Ressourcenanker – Wortarbeit */}
       <Card className="mb-6 border-l-4 border-yellow-500">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-lg font-bold text-yellow-400">6. Ressourcenanker – Wortarbeit</h2>
-              <p className="text-sm text-muted">(nur bei Fall 1: Material bleibt stabil oder verbessert sich)</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => fillSectionTestData('wortarbeit')}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
-              title="Testdaten für Wortarbeit einfügen"
-            >
-              <SparklesIcon />
-              Testdaten einfügen
-            </button>
+          <div className="mb-4">
+            <h2 className="text-lg font-bold text-yellow-400">6. Ressourcenanker – Wortarbeit</h2>
+            <p className="text-sm text-muted">(nur bei Fall 1: Material bleibt stabil oder verbessert sich)</p>
           </div>
           
           <div className="mb-4">
@@ -1070,18 +893,7 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
 
       {/* Section 7: Transfer in den Alltag */}
       <Card className="mb-6 border-l-4 border-yellow-500">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-yellow-400">7. Transfer in den Alltag</h2>
-          <button
-            type="button"
-            onClick={() => fillSectionTestData('transfer')}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
-            title="Testdaten für Transfer einfügen"
-          >
-            <SparklesIcon />
-            Testdaten einfügen
-          </button>
-        </div>
+        <h2 className="text-lg font-bold text-yellow-400 mb-4">7. Transfer in den Alltag</h2>
         
         <div className="mb-4 p-4 bg-surface-alt rounded-lg border border-muted">
           <label className="block text-sm font-medium text-on-surface mb-3">7.1 Nutzung ohne BLS</label>
@@ -1183,18 +995,7 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
 
       {/* Section 8: Abschluss der Übung */}
       <Card className="mb-6 border-l-4 border-yellow-500">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-yellow-400">8. Abschluss der Übung</h2>
-          <button
-            type="button"
-            onClick={() => fillSectionTestData('abschluss')}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
-            title="Testdaten für Abschluss einfügen"
-          >
-            <SparklesIcon />
-            Testdaten einfügen
-          </button>
-        </div>
+        <h2 className="text-lg font-bold text-yellow-400 mb-4">8. Abschluss der Übung</h2>
         
         <div className="mb-4">
           <label className="block text-sm font-medium text-on-surface mb-2">Subjektiver Zustand nach Übung (Mehrfachauswahl)</label>
@@ -1263,18 +1064,7 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
 
       {/* Section 9: Therapeutische Einschätzung */}
       <Card className="mb-6 border-l-4 border-yellow-500">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-yellow-400">9. Therapeutische Einschätzung</h2>
-          <button
-            type="button"
-            onClick={() => fillSectionTestData('therapeutische_einschaetzung')}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
-            title="Testdaten für Therapeutische Einschätzung einfügen"
-          >
-            <SparklesIcon />
-            Testdaten einfügen
-          </button>
-        </div>
+        <h2 className="text-lg font-bold text-yellow-400 mb-4">9. Therapeutische Einschätzung</h2>
         
         <div className="mb-4">
           <label className="block text-sm font-medium text-on-surface mb-2">Einschätzung der Eignung des sicheren Ortes</label>

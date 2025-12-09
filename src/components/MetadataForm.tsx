@@ -94,9 +94,10 @@ interface MetadataFormProps {
   metadata: Partial<ProtocolMetadata>;
   onChange: (metadata: Partial<ProtocolMetadata>) => void;
   errors?: { [key: string]: boolean };
+  onFillAllTestData?: () => void;
 }
 
-export const MetadataForm: React.FC<MetadataFormProps> = ({ metadata, onChange, errors = {} }) => {
+export const MetadataForm: React.FC<MetadataFormProps> = ({ metadata, onChange, errors = {}, onFillAllTestData }) => {
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     fromType: string;
@@ -141,6 +142,12 @@ export const MetadataForm: React.FC<MetadataFormProps> = ({ metadata, onChange, 
   };
 
   const handleFillTestData = () => {
+    // If onFillAllTestData is provided, use it to fill all fields
+    if (onFillAllTestData) {
+      onFillAllTestData();
+      return;
+    }
+    // Fallback: just fill metadata fields
     onChange({
       ...metadata,
       chiffre: getRandomChiffre(),
@@ -158,8 +165,8 @@ export const MetadataForm: React.FC<MetadataFormProps> = ({ metadata, onChange, 
           <button
             type="button"
             onClick={handleFillTestData}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand-secondary hover:text-white bg-brand-secondary/10 hover:bg-brand-secondary rounded-lg transition-colors"
-            title="Metadaten mit Testdaten füllen"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-green-400 hover:text-white bg-green-500/10 hover:bg-green-500 rounded-lg transition-colors"
+            title={onFillAllTestData ? "Alle Felder mit Testdaten füllen" : "Metadaten mit Testdaten füllen"}
           >
             <SparklesIcon />
             Testdaten einfügen

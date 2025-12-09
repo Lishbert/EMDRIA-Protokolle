@@ -28,6 +28,7 @@ import {
   STIMULATION_TYP_OPTIONS,
   SET_GESCHWINDIGKEIT_OPTIONS,
 } from '../constants';
+import { generateIRITestProtocol } from '../utils/testData';
 
 interface IRIProtocolEditorProps {
   protocol: IRIProtocol | null;
@@ -363,6 +364,15 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
 
   const hasUnsavedChanges = saveStatus !== 'saved';
 
+  const handleFillAllTestData = () => {
+    const testProtocol = generateIRITestProtocol();
+    setEditedProtocol({
+      ...testProtocol,
+      id: editedProtocol.id || testProtocol.id,
+      createdAt: editedProtocol.createdAt || testProtocol.createdAt,
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Metadata Section */}
@@ -370,6 +380,7 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
         metadata={editedProtocol}
         onChange={handleMetadataChange}
         errors={errors}
+        onFillAllTestData={handleFillAllTestData}
       />
 
       {/* Section 2: Indikation / Ausgangslage */}
