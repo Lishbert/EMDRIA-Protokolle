@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import type { Protocol, StandardProtocol, IRIProtocol, CIPOSProtocol, isIRIProtocol, isCIPOSProtocol } from '../types';
+import type { Protocol, StandardProtocol, IRIProtocol, CIPOSProtocol, SichererOrtProtocol } from '../types';
 import {
   INDIKATION_OPTIONS,
   KOERPERLOKALISATION_OPTIONS,
@@ -8,6 +8,11 @@ import {
   SET_GESCHWINDIGKEIT_OPTIONS,
   CIPOS_STIMULATION_METHODE_OPTIONS,
   CIPOS_REORIENTIERUNG_OPTIONS,
+  SICHERER_ORT_TYP_OPTIONS,
+  SICHERER_ORT_STIMULATION_OPTIONS,
+  BLS_REAKTION_OPTIONS,
+  SUBJEKTIVER_ZUSTAND_OPTIONS,
+  EIGNUNG_EINSCHAETZUNG_OPTIONS,
 } from '../constants';
 
 // Format date to German format (DD.MM.YYYY)
@@ -33,6 +38,11 @@ function checkIsIRI(protocol: Protocol): protocol is IRIProtocol {
 // Check if protocol is CIPOS
 function checkIsCIPOS(protocol: Protocol): protocol is CIPOSProtocol {
   return protocol.protocolType === 'CIPOS';
+}
+
+// Check if protocol is Sicherer Ort
+function checkIsSichererOrt(protocol: Protocol): protocol is SichererOrtProtocol {
+  return protocol.protocolType === 'Sicherer Ort';
 }
 
 // Export a single protocol as JSON
@@ -61,6 +71,8 @@ export const exportProtocolAsPDF = (protocol: Protocol): void => {
     exportIRIProtocolAsPDF(protocol);
   } else if (checkIsCIPOS(protocol)) {
     exportCIPOSProtocolAsPDF(protocol);
+  } else if (checkIsSichererOrt(protocol)) {
+    exportSichererOrtProtocolAsPDF(protocol);
   } else {
     exportStandardProtocolAsPDF(protocol as StandardProtocol);
   }
@@ -626,65 +638,71 @@ const exportCIPOSProtocolAsPDF = (protocol: CIPOSProtocol): void => {
     // Section 2: Einschätzung der Gegenwartsorientierung (vor Beginn)
     addSectionHeader(2, 'Einschätzung der Gegenwartsorientierung (vor Beginn)');
     
-    checkNewPage(15);
-    pdf.setFontSize(11);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(34, 197, 94);
-    pdf.text(`Gegenwartsorientierung: ${protocol.gegenwartsorientierung_vorher.prozent_gegenwartsorientierung}%`, margin, yPos);
-    pdf.setTextColor(0);
-    yPos += 7;
+    if (protocol.gegenwartsorientierung_vorher) {
+      checkNewPage(15);
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(34, 197, 94);
+      pdf.text(`Gegenwartsorientierung: ${protocol.gegenwartsorientierung_vorher.prozent_gegenwartsorientierung ?? '-'}%`, margin, yPos);
+      pdf.setTextColor(0);
+      yPos += 7;
 
-    addField('Indikatoren (Patient:in)', protocol.gegenwartsorientierung_vorher.indikatoren_patient);
-    addField('Beobachtungen (Therapeut:in)', protocol.gegenwartsorientierung_vorher.beobachtungen_therapeut);
+      addField('Indikatoren (Patient:in)', protocol.gegenwartsorientierung_vorher.indikatoren_patient);
+      addField('Beobachtungen (Therapeut:in)', protocol.gegenwartsorientierung_vorher.beobachtungen_therapeut);
+    }
 
     // Section 3: Verstärkung der sicheren Gegenwart – Durchführung
     addSectionHeader(3, 'Verstärkung der sicheren Gegenwart – Durchführung');
     
-    const stimMethodeLabel = getLabel(CIPOS_STIMULATION_METHODE_OPTIONS, protocol.verstaerkung_gegenwart.stimulation_methode);
-    addField('Art der Stimulation', stimMethodeLabel);
-    if (protocol.verstaerkung_gegenwart.stimulation_methode_sonstiges) {
-      addField('Beschreibung', protocol.verstaerkung_gegenwart.stimulation_methode_sonstiges, 3);
+    if (protocol.verstaerkung_gegenwart) {
+      const stimMethodeLabel = getLabel(CIPOS_STIMULATION_METHODE_OPTIONS, protocol.verstaerkung_gegenwart.stimulation_methode);
+      addField('Art der Stimulation', stimMethodeLabel);
+      if (protocol.verstaerkung_gegenwart.stimulation_methode_sonstiges) {
+        addField('Beschreibung', protocol.verstaerkung_gegenwart.stimulation_methode_sonstiges, 3);
+      }
+      addField('Dauer / Anzahl kurzer Sets', protocol.verstaerkung_gegenwart.dauer_anzahl_sets);
+      addYesNoField('Reaktion / Verbesserung wahrgenommen', protocol.verstaerkung_gegenwart.reaktion_verbesserung);
+      
+      checkNewPage(15);
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'bold');
+      const goNachStim = protocol.verstaerkung_gegenwart.gegenwartsorientierung_nach_stimulation ?? 0;
+      const goColor = goNachStim >= 70 ? [34, 197, 94] : goNachStim >= 50 ? [234, 179, 8] : [239, 68, 68];
+      pdf.setTextColor(goColor[0], goColor[1], goColor[2]);
+      pdf.text(`Gegenwartsorientierung nach Stimulation: ${goNachStim}%`, margin, yPos);
+      pdf.setTextColor(0);
+      yPos += 7;
+      
+      addField('Kommentar / Beobachtungen', protocol.verstaerkung_gegenwart.kommentar);
     }
-    addField('Dauer / Anzahl kurzer Sets', protocol.verstaerkung_gegenwart.dauer_anzahl_sets);
-    addYesNoField('Reaktion / Verbesserung wahrgenommen', protocol.verstaerkung_gegenwart.reaktion_verbesserung);
-    
-    checkNewPage(15);
-    pdf.setFontSize(11);
-    pdf.setFont('helvetica', 'bold');
-    const goNachStim = protocol.verstaerkung_gegenwart.gegenwartsorientierung_nach_stimulation;
-    const goColor = goNachStim >= 70 ? [34, 197, 94] : goNachStim >= 50 ? [234, 179, 8] : [239, 68, 68];
-    pdf.setTextColor(goColor[0], goColor[1], goColor[2]);
-    pdf.text(`Gegenwartsorientierung nach Stimulation: ${goNachStim}%`, margin, yPos);
-    pdf.setTextColor(0);
-    yPos += 7;
-    
-    addField('Kommentar / Beobachtungen', protocol.verstaerkung_gegenwart.kommentar);
 
     // Section 4: Erster Kontakt mit der belastenden Erinnerung
     addSectionHeader(4, 'Erster Kontakt mit der belastenden Erinnerung');
     
-    addSubsectionHeader('4.1', 'Beschreibung der Zielerinnerung / Auslöser');
-    addField('', protocol.erster_kontakt.zielerinnerung_beschreibung);
-    
-    addSubsectionHeader('4.2', 'SUD-Wert vor dem Kontakt');
-    checkNewPage(10);
-    pdf.setFontSize(11);
-    pdf.setFont('helvetica', 'bold');
-    const sudVor = protocol.erster_kontakt.sud_vor_kontakt;
-    const sudVorColor = sudVor <= 3 ? [34, 197, 94] : sudVor <= 6 ? [234, 179, 8] : [239, 68, 68];
-    pdf.setTextColor(sudVorColor[0], sudVorColor[1], sudVorColor[2]);
-    pdf.text(`SUD vor dem 1. Durchgang: ${sudVor}/10`, margin, yPos);
-    pdf.setTextColor(0);
-    yPos += 7;
-    
-    addSubsectionHeader('4.3', 'Festlegung der Belastungsdauer');
-    pdf.setFontSize(9);
-    pdf.setFont('helvetica', 'normal');
-    pdf.text(`Gewählte Dauer: ${protocol.erster_kontakt.belastungsdauer_sekunden} Sekunden`, margin, yPos);
-    yPos += 6;
+    if (protocol.erster_kontakt) {
+      addSubsectionHeader('4.1', 'Beschreibung der Zielerinnerung / Auslöser');
+      addField('', protocol.erster_kontakt.zielerinnerung_beschreibung);
+      
+      addSubsectionHeader('4.2', 'SUD-Wert vor dem Kontakt');
+      checkNewPage(10);
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'bold');
+      const sudVor = protocol.erster_kontakt.sud_vor_kontakt ?? 0;
+      const sudVorColor = sudVor <= 3 ? [34, 197, 94] : sudVor <= 6 ? [234, 179, 8] : [239, 68, 68];
+      pdf.setTextColor(sudVorColor[0], sudVorColor[1], sudVorColor[2]);
+      pdf.text(`SUD vor dem 1. Durchgang: ${sudVor}/10`, margin, yPos);
+      pdf.setTextColor(0);
+      yPos += 7;
+      
+      addSubsectionHeader('4.3', 'Festlegung der Belastungsdauer');
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`Gewählte Dauer: ${protocol.erster_kontakt.belastungsdauer_sekunden ?? '-'} Sekunden`, margin, yPos);
+      yPos += 6;
+    }
 
     // Durchgänge
-    if (protocol.durchgaenge.length > 0) {
+    if (protocol.durchgaenge && protocol.durchgaenge.length > 0) {
       protocol.durchgaenge.forEach((durchgang) => {
         const durchgangTitel = durchgang.durchgang_nummer === 1 
           ? 'Erster Durchgang (Durchführung & Reorientierung)' 
@@ -706,10 +724,10 @@ const exportCIPOSProtocolAsPDF = (protocol: CIPOSProtocol): void => {
         addYesNoField('Zähltechnik angewendet', durchgang.zaehl_technik);
         pdf.setFontSize(9);
         pdf.setFont('helvetica', 'normal');
-        pdf.text(`Dauer: ${durchgang.dauer_sekunden} Sekunden`, margin, yPos);
+        pdf.text(`Dauer: ${durchgang.dauer_sekunden ?? '-'} Sekunden`, margin, yPos);
         yPos += 5;
         
-        if (durchgang.reorientierung_methoden.length > 0) {
+        if (durchgang.reorientierung_methoden && durchgang.reorientierung_methoden.length > 0) {
           checkNewPage(15);
           pdf.setFontSize(9);
           pdf.setFont('helvetica', 'bold');
@@ -745,7 +763,7 @@ const exportCIPOSProtocolAsPDF = (protocol: CIPOSProtocol): void => {
         checkNewPage(15);
         pdf.setFontSize(11);
         pdf.setFont('helvetica', 'bold');
-        const goNach = durchgang.gegenwartsorientierung_nach;
+        const goNach = durchgang.gegenwartsorientierung_nach ?? 0;
         const goNachColor = goNach >= 70 ? [34, 197, 94] : goNach >= 50 ? [234, 179, 8] : [239, 68, 68];
         pdf.setTextColor(goNachColor[0], goNachColor[1], goNachColor[2]);
         pdf.text(`Gegenwartsorientierung nach Reorientierung: ${goNach}%`, margin, yPos);
@@ -763,67 +781,76 @@ const exportCIPOSProtocolAsPDF = (protocol: CIPOSProtocol): void => {
     // Section 7: Abschlussbewertung
     addSectionHeader(7, 'Abschlussbewertung');
     
-    addSubsectionHeader('7.1', 'SUD nach dem letzten Durchgang');
-    checkNewPage(10);
-    pdf.setFontSize(11);
-    pdf.setFont('helvetica', 'bold');
-    const sudNach = protocol.abschlussbewertung.sud_nach_letztem_durchgang;
-    const sudNachColor = sudNach <= 3 ? [34, 197, 94] : sudNach <= 6 ? [234, 179, 8] : [239, 68, 68];
-    pdf.setTextColor(sudNachColor[0], sudNachColor[1], sudNachColor[2]);
-    pdf.text(`SUD jetzt: ${sudNach}/10`, margin, yPos);
-    pdf.setTextColor(0);
-    yPos += 7;
-    
-    addSubsectionHeader('7.2', 'Veränderungsverlauf');
-    const sudChange = sudNach - sudVor;
-    checkNewPage(10);
-    pdf.setFontSize(9);
-    pdf.setFont('helvetica', 'normal');
-    const changeColor = sudChange < 0 ? [34, 197, 94] : sudChange > 0 ? [239, 68, 68] : [0, 0, 0];
-    pdf.text(`Ausgangs-SUD: ${sudVor} → Abschluss-SUD: ${sudNach}`, margin, yPos);
-    pdf.setTextColor(changeColor[0], changeColor[1], changeColor[2]);
-    pdf.text(`  (Veränderung: ${sudChange > 0 ? '+' : ''}${sudChange})`, margin + 70, yPos);
-    pdf.setTextColor(0);
-    yPos += 6;
-    
-    addSubsectionHeader('7.3', "Patient:innen-Rückmeldung");
-    addField('Wie fühlt sich die Erinnerung nun an?', protocol.abschlussbewertung.rueckmeldung_erinnerung);
-    addField('Veränderung im Körper?', protocol.abschlussbewertung.rueckmeldung_koerper);
-    if (protocol.abschlussbewertung.subjektive_sicherheit !== undefined) {
+    if (protocol.abschlussbewertung) {
+      addSubsectionHeader('7.1', 'SUD nach dem letzten Durchgang');
+      checkNewPage(10);
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'bold');
+      const sudNach = protocol.abschlussbewertung.sud_nach_letztem_durchgang ?? 0;
+      const sudNachColor = sudNach <= 3 ? [34, 197, 94] : sudNach <= 6 ? [234, 179, 8] : [239, 68, 68];
+      pdf.setTextColor(sudNachColor[0], sudNachColor[1], sudNachColor[2]);
+      pdf.text(`SUD jetzt: ${sudNach}/10`, margin, yPos);
+      pdf.setTextColor(0);
+      yPos += 7;
+      
+      addSubsectionHeader('7.2', 'Veränderungsverlauf');
+      const sudVorValue = protocol.erster_kontakt?.sud_vor_kontakt ?? 0;
+      const sudChange = sudNach - sudVorValue;
+      checkNewPage(10);
       pdf.setFontSize(9);
       pdf.setFont('helvetica', 'normal');
-      pdf.text(`Subjektive Sicherheit jetzt: ${protocol.abschlussbewertung.subjektive_sicherheit}%`, margin, yPos);
+      const changeColor = sudChange < 0 ? [34, 197, 94] : sudChange > 0 ? [239, 68, 68] : [0, 0, 0];
+      pdf.text(`Ausgangs-SUD: ${sudVorValue} → Abschluss-SUD: ${sudNach}`, margin, yPos);
+      pdf.setTextColor(changeColor[0], changeColor[1], changeColor[2]);
+      pdf.text(`  (Veränderung: ${sudChange > 0 ? '+' : ''}${sudChange})`, margin + 70, yPos);
+      pdf.setTextColor(0);
       yPos += 6;
+      
+      addSubsectionHeader('7.3', "Patient:innen-Rückmeldung");
+      addField('Wie fühlt sich die Erinnerung nun an?', protocol.abschlussbewertung.rueckmeldung_erinnerung);
+      addField('Veränderung im Körper?', protocol.abschlussbewertung.rueckmeldung_koerper);
+      if (protocol.abschlussbewertung.subjektive_sicherheit !== undefined) {
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`Subjektive Sicherheit jetzt: ${protocol.abschlussbewertung.subjektive_sicherheit}%`, margin, yPos);
+        yPos += 6;
+      }
     }
 
     // Section 8: Nachbesprechung / Abschluss
     addSectionHeader(8, 'Nachbesprechung / Abschluss');
-    addYesNoField('Nachbesprechung durchgeführt', protocol.nachbesprechung.nachbesprechung_durchgefuehrt);
-    addYesNoField('Hinweis auf weiteres inneres Prozessieren gegeben', protocol.nachbesprechung.hinweis_inneres_prozessieren);
-    addField('Aufgabe / Empfehlung für Tagebuch', protocol.nachbesprechung.aufgabe_tagebuch);
-    addField('Besondere Beobachtungen der Therapeut:in', protocol.nachbesprechung.beobachtungen_therapeut);
+    if (protocol.nachbesprechung) {
+      addYesNoField('Nachbesprechung durchgeführt', protocol.nachbesprechung.nachbesprechung_durchgefuehrt);
+      addYesNoField('Hinweis auf weiteres inneres Prozessieren gegeben', protocol.nachbesprechung.hinweis_inneres_prozessieren);
+      addField('Aufgabe / Empfehlung für Tagebuch', protocol.nachbesprechung.aufgabe_tagebuch);
+      addField('Besondere Beobachtungen der Therapeut:in', protocol.nachbesprechung.beobachtungen_therapeut);
+    }
 
     // Section 9: Falls Schwierigkeiten auftraten
     addSectionHeader(9, 'Falls Schwierigkeiten auftraten');
-    addYesNoField('Probleme bei der Reorientierung', protocol.schwierigkeiten.probleme_reorientierung);
-    if (protocol.schwierigkeiten.probleme_reorientierung) {
-      addField('Erforderliche zusätzliche Stabilisierungstechniken', protocol.schwierigkeiten.stabilisierungstechniken, 3);
-    }
-    addYesNoField('CIPOS vorzeitig beendet', protocol.schwierigkeiten.cipos_vorzeitig_beendet);
-    if (protocol.schwierigkeiten.cipos_vorzeitig_beendet) {
-      addField('Grund für vorzeitige Beendigung', protocol.schwierigkeiten.cipos_vorzeitig_grund, 3);
+    if (protocol.schwierigkeiten) {
+      addYesNoField('Probleme bei der Reorientierung', protocol.schwierigkeiten.probleme_reorientierung);
+      if (protocol.schwierigkeiten.probleme_reorientierung) {
+        addField('Erforderliche zusätzliche Stabilisierungstechniken', protocol.schwierigkeiten.stabilisierungstechniken, 3);
+      }
+      addYesNoField('CIPOS vorzeitig beendet', protocol.schwierigkeiten.cipos_vorzeitig_beendet);
+      if (protocol.schwierigkeiten.cipos_vorzeitig_beendet) {
+        addField('Grund für vorzeitige Beendigung', protocol.schwierigkeiten.cipos_vorzeitig_grund, 3);
+      }
     }
 
     // Section 10: Abschluss der Dokumentation
     addSectionHeader(10, 'Abschluss der Dokumentation');
-    addField('Gesamteinschätzung der Therapeut:in', protocol.abschluss_dokumentation.gesamteinschaetzung_therapeut);
-    addField('Planung für nächste Sitzung', protocol.abschluss_dokumentation.planung_naechste_sitzung);
-    if (protocol.abschluss_dokumentation.signatur_therapeut) {
-      checkNewPage(10);
-      pdf.setFontSize(9);
-      pdf.setFont('helvetica', 'normal');
-      pdf.text(`Signatur / Name der Therapeut:in: ${protocol.abschluss_dokumentation.signatur_therapeut}`, margin, yPos);
-      yPos += 6;
+    if (protocol.abschluss_dokumentation) {
+      addField('Gesamteinschätzung der Therapeut:in', protocol.abschluss_dokumentation.gesamteinschaetzung_therapeut);
+      addField('Planung für nächste Sitzung', protocol.abschluss_dokumentation.planung_naechste_sitzung);
+      if (protocol.abschluss_dokumentation.signatur_therapeut) {
+        checkNewPage(10);
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`Signatur / Name der Therapeut:in: ${protocol.abschluss_dokumentation.signatur_therapeut}`, margin, yPos);
+        yPos += 6;
+      }
     }
 
     // Footer with timestamp
@@ -842,5 +869,353 @@ const exportCIPOSProtocolAsPDF = (protocol: CIPOSProtocol): void => {
   } catch (error) {
     console.error('Error exporting CIPOS protocol as PDF:', error);
     throw new Error('Failed to export CIPOS protocol as PDF.');
+  }
+};
+
+// Export Sicherer Ort Protocol as PDF
+const exportSichererOrtProtocolAsPDF = (protocol: SichererOrtProtocol): void => {
+  try {
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 15;
+    const contentWidth = pageWidth - 2 * margin;
+
+    let yPos = margin;
+
+    // Helper to check for new page
+    const checkNewPage = (requiredSpace: number = 30) => {
+      if (yPos > pageHeight - margin - requiredSpace) {
+        pdf.addPage();
+        yPos = margin;
+      }
+    };
+
+    // Helper to add section header
+    const addSectionHeader = (number: number | string, title: string) => {
+      checkNewPage(20);
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(234, 179, 8); // Yellow color for Sicherer Ort
+      pdf.text(`${number}. ${title}`, margin, yPos);
+      pdf.setTextColor(0);
+      yPos += 7;
+    };
+
+    // Helper to add field
+    const addField = (label: string, value: string | number | undefined | null, indent: number = 0) => {
+      if (value === undefined || value === null || value === '') return;
+      checkNewPage(15);
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(`${label}:`, margin + indent, yPos);
+      yPos += 4;
+      pdf.setFont('helvetica', 'normal');
+      const lines = pdf.splitTextToSize(String(value), contentWidth - indent);
+      pdf.text(lines, margin + indent, yPos);
+      yPos += lines.length * 4 + 3;
+    };
+
+    // Helper for Yes/No fields
+    const addYesNoField = (label: string, value: boolean | 'ja' | 'nein' | null | undefined, indent: number = 0) => {
+      if (value === undefined || value === null) return;
+      checkNewPage(10);
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'normal');
+      const text = value === true || value === 'ja' ? '☑ Ja' : '☐ Nein';
+      pdf.text(`${label}: ${text}`, margin + indent, yPos);
+      yPos += 5;
+    };
+
+    // Header
+    pdf.setFontSize(18);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(234, 179, 8);
+    pdf.text('Sicherer Ort Protokoll', margin, yPos);
+    pdf.setTextColor(0);
+    yPos += 10;
+
+    // Section 1: Metadata box
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setDrawColor(234, 179, 8);
+    pdf.setFillColor(254, 252, 232);
+    pdf.rect(margin, yPos, contentWidth, 25, 'F');
+    pdf.rect(margin, yPos, contentWidth, 25, 'S');
+    
+    yPos += 5;
+    pdf.text(`Chiffre: ${protocol.chiffre}`, margin + 5, yPos);
+    yPos += 5;
+    pdf.text(`Datum: ${formatDateGerman(protocol.datum)}`, margin + 5, yPos);
+    yPos += 5;
+    pdf.text(`Protokollnummer: ${protocol.protokollnummer}`, margin + 5, yPos);
+    yPos += 5;
+    pdf.text(`Protokolltyp: Sicherer Ort (Safe Place)`, margin + 5, yPos);
+    yPos += 12;
+
+    // Section 2: Einführung in die Übung
+    addSectionHeader(2, 'Einführung in die Übung');
+    addField('Einbettung / Warum heute gewählt', protocol.einfuehrung.einbettung_kurzbeschreibung);
+    addYesNoField('Psychoedukation gegeben', protocol.einfuehrung.psychoedukation_gegeben);
+    if (protocol.einfuehrung.psychoedukation_kommentar) {
+      addField('Kommentar zur Psychoedukation', protocol.einfuehrung.psychoedukation_kommentar, 3);
+    }
+    addYesNoField('Anker-Konzept erklärt (Metapher)', protocol.einfuehrung.anker_konzept_erklaert);
+
+    // Section 3: Findung des Wohlfühlortes / Sicheren Ortes
+    addSectionHeader(3, 'Findung des Wohlfühlortes / Sicheren Ortes');
+    
+    if (protocol.findung.ort_typ) {
+      const ortTypLabel = getLabel(SICHERER_ORT_TYP_OPTIONS, protocol.findung.ort_typ);
+      addField('Art des Ortes', ortTypLabel);
+    }
+    addField('Nennung des Ortes', protocol.findung.ort_nennung);
+    addField('Gefühl beim Ort', protocol.findung.gefuehl_beim_ort);
+    addField('Körperstelle des Gefühls', protocol.findung.koerperstelle_gefuehl);
+
+    // Section 4: 1. Set Bilaterale Stimulation
+    addSectionHeader(4, '1. Set Bilaterale Stimulation');
+    
+    addYesNoField('BLS durchgeführt', protocol.set1.bls_durchgefuehrt);
+    
+    if (protocol.set1.bls_durchgefuehrt) {
+      if (protocol.set1.stimulation_art) {
+        const stimArtLabel = getLabel(SICHERER_ORT_STIMULATION_OPTIONS, protocol.set1.stimulation_art);
+        addField('Art der Stimulation', stimArtLabel);
+        if (protocol.set1.stimulation_art === 'anderes' && protocol.set1.stimulation_art_sonstiges) {
+          addField('Beschreibung', protocol.set1.stimulation_art_sonstiges, 3);
+        }
+      }
+      
+      if (protocol.set1.reaktion_nach_set) {
+        const reaktionLabel = getLabel(BLS_REAKTION_OPTIONS, protocol.set1.reaktion_nach_set);
+        checkNewPage(10);
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'bold');
+        const reaktionColor = protocol.set1.reaktion_nach_set === 'positiv' ? [34, 197, 94] : 
+                              protocol.set1.reaktion_nach_set === 'negativ' ? [239, 68, 68] : [0, 0, 0];
+        pdf.setTextColor(reaktionColor[0], reaktionColor[1], reaktionColor[2]);
+        pdf.text(`Reaktion nach Set: ${reaktionLabel}`, margin, yPos);
+        pdf.setTextColor(0);
+        yPos += 6;
+      }
+      
+      addField('Beschreibung der Veränderung', protocol.set1.reaktion_beschreibung);
+      
+      if (protocol.set1.interpretation_fall) {
+        checkNewPage(15);
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'bold');
+        const fallText = protocol.set1.interpretation_fall === 'fall1_weiter' 
+          ? 'Fall 1 – Keine/positive Veränderung → zweites Set'
+          : 'Fall 2 – Negative Veränderung → Abbruch/Anpassung';
+        const fallColor = protocol.set1.interpretation_fall === 'fall1_weiter' ? [34, 197, 94] : [239, 68, 68];
+        pdf.setTextColor(fallColor[0], fallColor[1], fallColor[2]);
+        pdf.text(`Interpretation: ${fallText}`, margin, yPos);
+        pdf.setTextColor(0);
+        yPos += 6;
+        
+        if (protocol.set1.interpretation_fall === 'fall2_abbruch') {
+          if (protocol.set1.fall2_grund) {
+            const grundLabels: Record<string, string> = {
+              'ort_ungeeignet': 'Ort ungeeignet',
+              'stimulation_nicht_tolerierbar': 'Stimulation noch nicht tolerierbar',
+              'weitere_stabilisierung': 'Weitere Stabilisierung notwendig',
+            };
+            addField('Grund', grundLabels[protocol.set1.fall2_grund] || protocol.set1.fall2_grund, 3);
+          }
+          addField('Kommentar', protocol.set1.fall2_kommentar, 3);
+        }
+      }
+    }
+
+    // Section 5: 2. Set
+    addSectionHeader(5, '2. Set (nur bei Fall 1)');
+    
+    addYesNoField('BLS durchgeführt', protocol.set2.bls_durchgefuehrt);
+    
+    if (protocol.set2.bls_durchgefuehrt) {
+      if (protocol.set2.stimulation_art) {
+        const stimArtLabel = getLabel(SICHERER_ORT_STIMULATION_OPTIONS, protocol.set2.stimulation_art);
+        addField('Art der Stimulation', stimArtLabel);
+        if (protocol.set2.stimulation_art === 'anderes' && protocol.set2.stimulation_art_sonstiges) {
+          addField('Beschreibung', protocol.set2.stimulation_art_sonstiges, 3);
+        }
+      }
+      addField('Anzahl Bewegungen', protocol.set2.anzahl_bewegungen);
+      addField('Veränderung', protocol.set2.veraenderung_beschreibung);
+      
+      if (protocol.set2.reaktion_nach_set) {
+        const reaktionLabel = getLabel(BLS_REAKTION_OPTIONS, protocol.set2.reaktion_nach_set);
+        checkNewPage(10);
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'bold');
+        const reaktionColor = protocol.set2.reaktion_nach_set === 'positiv' ? [34, 197, 94] : 
+                              protocol.set2.reaktion_nach_set === 'negativ' ? [239, 68, 68] : [0, 0, 0];
+        pdf.setTextColor(reaktionColor[0], reaktionColor[1], reaktionColor[2]);
+        pdf.text(`Reaktion nach Set: ${reaktionLabel}`, margin, yPos);
+        pdf.setTextColor(0);
+        yPos += 6;
+      }
+      
+      addField('Kommentar', protocol.set2.kommentar);
+    }
+
+    // Section 6: Ressourcenanker – Wortarbeit
+    addSectionHeader(6, 'Ressourcenanker – Wortarbeit');
+    
+    addField('Wort für den Ort', protocol.wortarbeit.wort_fuer_ort);
+    
+    checkNewPage(20);
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('3. Set mit Wort:', margin, yPos);
+    yPos += 5;
+    
+    addYesNoField('BLS durchgeführt', protocol.wortarbeit.set3_bls_durchgefuehrt, 3);
+    addYesNoField('Patient:in denkt an Wort + Ort', protocol.wortarbeit.set3_patient_denkt_wort_ort, 3);
+    addField('Reaktion', protocol.wortarbeit.set3_reaktion, 3);
+    
+    if (protocol.wortarbeit.set4_durchgefuehrt !== null) {
+      checkNewPage(15);
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('4. Set (optional):', margin, yPos);
+      yPos += 5;
+      
+      addYesNoField('Durchgeführt', protocol.wortarbeit.set4_durchgefuehrt, 3);
+      if (protocol.wortarbeit.set4_durchgefuehrt && protocol.wortarbeit.set4_reaktion) {
+        addField('Reaktion', protocol.wortarbeit.set4_reaktion, 3);
+      }
+    }
+
+    // Section 7: Transfer in den Alltag
+    addSectionHeader(7, 'Transfer in den Alltag');
+    
+    checkNewPage(15);
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Nutzung ohne BLS:', margin, yPos);
+    yPos += 5;
+    
+    addYesNoField('Anleitung durchgeführt', protocol.transfer.anleitung_durchgefuehrt, 3);
+    
+    if (protocol.transfer.patient_erreicht_ort) {
+      checkNewPage(10);
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'normal');
+      const erreichtLabels: Record<string, string> = {
+        'ja': '☑ Ja',
+        'teilweise': '◐ Teilweise',
+        'nein': '☐ Nein',
+      };
+      const erreichtColor = protocol.transfer.patient_erreicht_ort === 'ja' ? [34, 197, 94] : 
+                           protocol.transfer.patient_erreicht_ort === 'nein' ? [239, 68, 68] : [234, 179, 8];
+      pdf.setTextColor(erreichtColor[0], erreichtColor[1], erreichtColor[2]);
+      pdf.text(`Patient:in kann Ort + Gefühl erreichen: ${erreichtLabels[protocol.transfer.patient_erreicht_ort]}`, margin + 3, yPos);
+      pdf.setTextColor(0);
+      yPos += 5;
+    }
+    
+    addField('Beschreibung', protocol.transfer.reaktion_beschreibung, 3);
+    
+    checkNewPage(15);
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Alltagstauglichkeit:', margin, yPos);
+    yPos += 5;
+    
+    if (protocol.transfer.alltag_nutzbar) {
+      checkNewPage(10);
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'normal');
+      const nutzbarLabels: Record<string, string> = {
+        'ja': '☑ Ja',
+        'nein': '☐ Nein',
+        'unsicher': '? Unsicher',
+      };
+      pdf.text(`Ort als Anker im Alltag nutzbar: ${nutzbarLabels[protocol.transfer.alltag_nutzbar]}`, margin + 3, yPos);
+      yPos += 5;
+    }
+    
+    addField('Hinweise für Anwendung im Alltag', protocol.transfer.alltag_hinweise, 3);
+
+    // Section 8: Abschluss der Übung
+    addSectionHeader(8, 'Abschluss der Übung');
+    
+    if (protocol.abschluss.subjektiver_zustand && protocol.abschluss.subjektiver_zustand.length > 0) {
+      checkNewPage(15);
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Subjektiver Zustand nach Übung:', margin, yPos);
+      yPos += 4;
+      pdf.setFont('helvetica', 'normal');
+      protocol.abschluss.subjektiver_zustand.forEach((zustand) => {
+        const label = getLabel(SUBJEKTIVER_ZUSTAND_OPTIONS, zustand);
+        const color = zustand === 'dysreguliert' ? [239, 68, 68] : [0, 0, 0];
+        pdf.setTextColor(color[0], color[1], color[2]);
+        pdf.text(`• ${label}`, margin + 3, yPos);
+        yPos += 4;
+      });
+      pdf.setTextColor(0);
+      yPos += 2;
+    }
+    
+    addField('Körperliche Wahrnehmung', protocol.abschluss.koerperliche_wahrnehmung);
+    addYesNoField('Stabilisierung ausreichend', protocol.abschluss.stabilisierung_ausreichend);
+    
+    if (protocol.abschluss.stabilisierung_ausreichend === false && protocol.abschluss.weitere_techniken) {
+      addField('Weitere Techniken', protocol.abschluss.weitere_techniken, 3);
+    }
+
+    // Section 9: Therapeutische Einschätzung
+    addSectionHeader(9, 'Therapeutische Einschätzung');
+    
+    if (protocol.therapeutische_einschaetzung.eignung_sicherer_ort) {
+      const eignungLabel = getLabel(EIGNUNG_EINSCHAETZUNG_OPTIONS, protocol.therapeutische_einschaetzung.eignung_sicherer_ort);
+      checkNewPage(10);
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      const eignungColor = protocol.therapeutische_einschaetzung.eignung_sicherer_ort === 'geeignet' ? [34, 197, 94] :
+                           protocol.therapeutische_einschaetzung.eignung_sicherer_ort === 'nicht_geeignet' ? [239, 68, 68] :
+                           protocol.therapeutische_einschaetzung.eignung_sicherer_ort === 'bedingt_geeignet' ? [234, 179, 8] : [0, 0, 0];
+      pdf.setTextColor(eignungColor[0], eignungColor[1], eignungColor[2]);
+      pdf.text(`Eignung des sicheren Ortes: ${eignungLabel}`, margin, yPos);
+      pdf.setTextColor(0);
+      yPos += 6;
+    }
+    
+    addField('Besondere Beobachtungen', protocol.therapeutische_einschaetzung.besondere_beobachtungen);
+    addField('Planung für weitere Sitzungen', protocol.therapeutische_einschaetzung.planung_weitere_sitzungen);
+    
+    if (protocol.therapeutische_einschaetzung.signatur_therapeut) {
+      checkNewPage(10);
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`Signatur / Name der Therapeut:in: ${protocol.therapeutische_einschaetzung.signatur_therapeut}`, margin, yPos);
+      yPos += 6;
+    }
+
+    // Footer with timestamp
+    const totalPages = pdf.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      pdf.setPage(i);
+      pdf.setFontSize(8);
+      pdf.setTextColor(150);
+      pdf.text(`Erstellt am ${new Date().toLocaleString('de-DE')} | Seite ${i}/${totalPages}`, margin, pageHeight - 10);
+      pdf.setTextColor(0);
+    }
+
+    // Save PDF
+    const filename = `SichererOrt_${protocol.chiffre}_${protocol.datum}_${protocol.protokollnummer}.pdf`;
+    pdf.save(filename.replace(/[^a-zA-Z0-9_.-]/g, '_'));
+  } catch (error) {
+    console.error('Error exporting Sicherer Ort protocol as PDF:', error);
+    throw new Error('Failed to export Sicherer Ort protocol as PDF.');
   }
 };
