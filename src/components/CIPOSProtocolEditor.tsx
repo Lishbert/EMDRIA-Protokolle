@@ -455,7 +455,7 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
     });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateProtocol()) {
       setSaveStatus('error');
       return;
@@ -482,7 +482,7 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
         abschluss_dokumentation: editedProtocol.abschluss_dokumentation!,
       };
 
-      saveProtocol(protocolToSave);
+      await saveProtocol(protocolToSave);
       setSaveStatus('saved');
 
       setTimeout(() => {

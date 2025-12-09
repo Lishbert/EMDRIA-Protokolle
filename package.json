@@ -3,15 +3,28 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "workspaces": [
+    ".",
+    "server"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "dev:client": "vite",
+    "dev:server": "npm run dev --workspace=server",
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "vite build",
+    "build:server": "npm run build --workspace=server",
     "preview": "vite preview",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
-    "test:headed": "playwright test --headed"
+    "test:headed": "playwright test --headed",
+    "db:migrate": "npm run db:migrate --workspace=server",
+    "db:generate": "npm run db:generate --workspace=server",
+    "db:push": "npm run db:push --workspace=server",
+    "db:studio": "npm run db:studio --workspace=server"
   },
   "dependencies": {
+    "hono": "^4.6.0",
     "jspdf": "^3.0.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
@@ -24,6 +37,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.16",
+    "concurrently": "^9.0.0",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.4.0",
     "typescript": "~5.8.2",

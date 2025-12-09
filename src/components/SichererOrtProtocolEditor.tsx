@@ -296,7 +296,7 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateProtocol()) {
       setSaveStatus('error');
       return;
@@ -323,7 +323,7 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
         therapeutische_einschaetzung: editedProtocol.therapeutische_einschaetzung!,
       };
 
-      saveProtocol(protocolToSave);
+      await saveProtocol(protocolToSave);
       setSaveStatus('saved');
 
       setTimeout(() => {

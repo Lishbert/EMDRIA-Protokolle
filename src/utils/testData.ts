@@ -655,27 +655,27 @@ export const generateSichererOrtTestProtocol = (
 };
 
 // Generate multiple test protocols
-export const generateMultipleTestProtocols = (count: number = 5): Protocol[] => {
+export const generateMultipleTestProtocols = async (count: number = 5): Promise<Protocol[]> => {
   const protocols: Protocol[] = [];
-  
+
   for (let i = 0; i < count; i++) {
     const protocol = generateTestProtocol();
     protocols.push(protocol);
-    saveProtocol(protocol);
+    await saveProtocol(protocol);
   }
-  
+
   return protocols;
 };
 
 // Generate one protocol of each type
-export const generateTestProtocolsAllTypes = (): Protocol[] => {
+export const generateTestProtocolsAllTypes = async (): Promise<Protocol[]> => {
   const protocols: Protocol[] = [];
-  
-  PROTOCOL_TYPES.forEach(type => {
+
+  for (const type of PROTOCOL_TYPES) {
     const protocol = generateTestProtocol(type);
     protocols.push(protocol);
-    saveProtocol(protocol);
-  });
-  
+    await saveProtocol(protocol);
+  }
+
   return protocols;
 };

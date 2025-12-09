@@ -1,120 +1,94 @@
-import type { Protocol, ProtocolListItem, ProtocolMetadata } from '../types';
-import { STORAGE_KEY_PREFIX, PROTOCOLS_LIST_KEY } from '../constants';
+import type { Protocol, ProtocolListItem } from '../types';
+import { api, handleApiResponse } from '../api/client';
 
-// Save a protocol to localStorage
-export const saveProtocol = (protocol: Protocol): void => {
+// Save a protocol to the backend
+export const saveProtocol = async (protocol: Protocol): Promise<void> => {
   try {
-    const key = STORAGE_KEY_PREFIX + protocol.id;
-    localStorage.setItem(key, JSON.stringify(protocol));
-    updateProtocolsList(protocol);
+    const { id, chiffre, datum, protokollnummer, protocolType, createdAt, lastModified, ...data } = protocol;
+
+    const payload = {
+      chiffre,
+      datum,
+      protokollnummer,
+      protocolType,
+      ...data,
+    };
+
+    // Try to update existing protocol first
+    if (id) {
+      const existing = await api.api.protocols[':id'].$get({ param: { id } })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null);
+
+      if (existing) {
+        await handleApiResponse(
+          await api.api.protocols[':id'].$put({
+            param: { id },
+            json: payload,
+          })
+        );
+        return;
+      }
+    }
+
+    // Create new protocol
+    await handleApiResponse(await api.api.protocols.$post({ json: payload }));
   } catch (error) {
     console.error('Error saving protocol:', error);
-    throw new Error('Failed to save protocol. Storage might be full.');
+    throw new Error('Protokoll konnte nicht gespeichert werden.');
   }
 };
 
-// Load a protocol from localStorage
-export const loadProtocol = (id: string): Protocol | null => {
+// Load a protocol from the backend
+export const loadProtocol = async (id: string): Promise<Protocol | null> => {
   try {
-    const key = STORAGE_KEY_PREFIX + id;
-    const data = localStorage.getItem(key);
-    if (!data) return null;
-    return JSON.parse(data) as Protocol;
+    const response = await api.api.protocols[':id'].$get({ param: { id } });
+    if (!response.ok) return null;
+    return (await response.json()) as Protocol;
   } catch (error) {
     console.error('Error loading protocol:', error);
     return null;
   }
 };
 
-// Delete a protocol from localStorage
-export const deleteProtocol = (id: string): void => {
+// Delete a protocol from the backend
+export const deleteProtocol = async (id: string): Promise<void> => {
   try {
-    const key = STORAGE_KEY_PREFIX + id;
-    localStorage.removeItem(key);
-    removeFromProtocolsList(id);
+    await handleApiResponse(await api.api.protocols[':id'].$delete({ param: { id } }));
   } catch (error) {
     console.error('Error deleting protocol:', error);
-    throw new Error('Failed to delete protocol.');
+    throw new Error('Protokoll konnte nicht gelöscht werden.');
   }
 };
 
 // Get list of all protocols (metadata only)
-export const getProtocolsList = (): ProtocolListItem[] => {
+export const getProtocolsList = async (): Promise<ProtocolListItem[]> => {
   try {
-    const listData = localStorage.getItem(PROTOCOLS_LIST_KEY);
-    if (!listData) return [];
-    const list = JSON.parse(listData) as ProtocolListItem[];
-    // Sort by lastModified descending (newest first)
-    return list.sort((a, b) => b.lastModified - a.lastModified);
+    const response = await api.api.protocols.$get();
+    if (!response.ok) return [];
+    return (await response.json()) as ProtocolListItem[];
   } catch (error) {
     console.error('Error loading protocols list:', error);
     return [];
   }
 };
 
-// Update the protocols list with a new or modified protocol
-const updateProtocolsList = (protocol: Protocol): void => {
-  try {
-    const list = getProtocolsList();
-    const listItem: ProtocolListItem = {
-      id: protocol.id,
-      chiffre: protocol.chiffre,
-      datum: protocol.datum,
-      protokollnummer: protocol.protokollnummer,
-      protocolType: protocol.protocolType,
-      lastModified: protocol.lastModified,
-    };
-
-    // Remove existing entry if present
-    const filteredList = list.filter(item => item.id !== protocol.id);
-    
-    // Add updated entry
-    filteredList.push(listItem);
-    
-    localStorage.setItem(PROTOCOLS_LIST_KEY, JSON.stringify(filteredList));
-  } catch (error) {
-    console.error('Error updating protocols list:', error);
-  }
-};
-
-// Remove a protocol from the list
-const removeFromProtocolsList = (id: string): void => {
-  try {
-    const list = getProtocolsList();
-    const filteredList = list.filter(item => item.id !== id);
-    localStorage.setItem(PROTOCOLS_LIST_KEY, JSON.stringify(filteredList));
-  } catch (error) {
-    console.error('Error removing from protocols list:', error);
-  }
-};
-
 // Export all protocols as a JSON file
-export const exportAllProtocolsAsJSON = (): void => {
+export const exportAllProtocolsAsJSON = async (): Promise<void> => {
   try {
-    const list = getProtocolsList();
-    const allProtocols: Protocol[] = [];
-    
-    for (const item of list) {
-      const protocol = loadProtocol(item.id);
-      if (protocol) {
-        allProtocols.push(protocol);
-      }
-    }
-    
-    const dataStr = JSON.stringify(allProtocols, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    
+    const response = await api.api.protocols.export.json.$get();
+    const blob = await response.blob();
+
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     const timestamp = new Date().toISOString().split('T')[0];
     link.download = `EMDR_Protokolle_${timestamp}.json`;
     link.click();
-    
     URL.revokeObjectURL(url);
   } catch (error) {
     console.error('Error exporting protocols:', error);
-    throw new Error('Failed to export protocols.');
+    throw new Error('Protokolle konnten nicht exportiert werden.');
   }
 };
 
@@ -122,33 +96,28 @@ export const exportAllProtocolsAsJSON = (): void => {
 export const importProtocolsFromJSON = (file: File): Promise<number> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    
-    reader.onload = (e) => {
+
+    reader.onload = async (e) => {
       try {
         const content = e.target?.result as string;
         const protocols = JSON.parse(content) as Protocol[];
-        
-        let importedCount = 0;
-        for (const protocol of protocols) {
-          // Ensure protocol has required fields
-          if (protocol.id && protocol.chiffre && protocol.datum) {
-            saveProtocol(protocol);
-            importedCount++;
-          }
-        }
-        
-        resolve(importedCount);
+
+        const response = await api.api.protocols.import.$post({
+          json: { protocols },
+        });
+
+        const result = await handleApiResponse<{ imported: number }>(response);
+        resolve(result.imported);
       } catch (error) {
         console.error('Error importing protocols:', error);
-        reject(new Error('Failed to import protocols. Invalid file format.'));
+        reject(new Error('Protokolle konnten nicht importiert werden.'));
       }
     };
-    
+
     reader.onerror = () => {
-      reject(new Error('Failed to read file.'));
+      reject(new Error('Datei konnte nicht gelesen werden.'));
     };
-    
+
     reader.readAsText(file);
   });
 };
-

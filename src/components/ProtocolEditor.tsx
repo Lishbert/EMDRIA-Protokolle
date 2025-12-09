@@ -337,10 +337,10 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
 
   const missingFields = getMissingFields();
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Check if this is actually an IRI protocol that needs special handling
     if (editedProtocol.protocolType === 'IRI') {
-      saveProtocol(editedProtocol as unknown as Protocol);
+      await saveProtocol(editedProtocol as unknown as Protocol);
       setSaveStatus('saved');
       setTimeout(() => {
         onSave();
@@ -355,7 +355,7 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
 
     try {
       setSaveStatus('saving');
-      
+
       const protocolToSave: StandardProtocol = {
         id: editedProtocol.id!,
         chiffre: editedProtocol.chiffre!,
@@ -368,9 +368,9 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
         lastModified: Date.now(),
       };
 
-      saveProtocol(protocolToSave);
+      await saveProtocol(protocolToSave);
       setSaveStatus('saved');
-      
+
       setTimeout(() => {
         onSave();
       }, 500);

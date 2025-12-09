@@ -41,3 +41,11 @@ Thumbs.db
 # Testing
 coverage/
 .nyc_output/
+
+# Server
+server/dist/
+server/node_modules/
+
+# Prisma
+server/prisma/migrations/*
+!server/prisma/migrations/.gitkeep

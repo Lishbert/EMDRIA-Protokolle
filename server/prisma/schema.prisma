@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Benutzer-Modell für Authentifizierung
+model Benutzer {
+  id             String      @id @default(uuid())
+  benutzername   String      @unique
+  passwortHash   String
+  anzeigename    String?
+  erstelltAm     DateTime    @default(now())
+  aktualisiertAm DateTime    @updatedAt
+  sitzungen      Sitzung[]
+  protokolle     Protokoll[]
+
+  @@map("benutzer")
+}
+
+// Sitzung-Modell für Session-Verwaltung
+model Sitzung {
+  id         String   @id @default(uuid())
+  benutzerId String
+  token      String   @unique
+  laeuftAbAm DateTime
+  erstelltAm DateTime @default(now())
+  benutzer   Benutzer @relation(fields: [benutzerId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([laeuftAbAm])
+  @@map("sitzung")
+}
+
+// Protokoll-Modell für EMDR-Protokolle
+model Protokoll {
+  id              String       @id @default(uuid())
+  benutzerId      String
+  chiffre         String       // Patienten-Chiffre
+  datum           String       // Datum im ISO-Format
+  protokollnummer String
+  protokollTyp    ProtokollTyp
+  daten           Json         // Typspezifische verschachtelte Daten
+  erstelltAm      DateTime     @default(now())
+  geaendertAm     DateTime     @updatedAt
+  benutzer        Benutzer     @relation(fields: [benutzerId], references: [id], onDelete: Cascade)
+
+  @@index([benutzerId])
+  @@index([chiffre])
+  @@index([geaendertAm])
+  @@map("protokoll")
+}
+
+enum ProtokollTyp {
+  Reprozessieren
+  IRI
+  CIPOS
+  SichererOrt
+
+  @@map("protokoll_typ")
+}

@@ -312,7 +312,7 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateProtocol()) {
       setSaveStatus('error');
       return;
@@ -339,7 +339,7 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
         abschluss: editedProtocol.abschluss!,
       };
 
-      saveProtocol(protocolToSave);
+      await saveProtocol(protocolToSave);
       setSaveStatus('saved');
 
       setTimeout(() => {

@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Tabs } from './components/ui';
 import type { Tab } from './components/ui';
 import { ProtocolList } from './components/ProtocolList';
 import { ProtocolEditor } from './components/ProtocolEditor';
+import { LoginForm } from './components/LoginForm';
 import { ListIcon, PencilIcon, CloudIcon } from './components/icons';
 import type { Protocol, ProtocolListItem } from './types';
 import { getProtocolsList, loadProtocol, deleteProtocol } from './utils/storage';
 import { exportProtocolAsPDF } from './utils/export';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 // Notification Component
 interface NotificationProps {
@@ -117,7 +119,8 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({ isOpen, title, message, onC
   );
 };
 
-export default function App() {
+function AppContent() {
+  const { benutzer, logout, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<'list' | 'editor'>('list');
   const [protocols, setProtocols] = useState<ProtocolListItem[]>([]);
   const [currentProtocol, setCurrentProtocol] = useState<Protocol | null>(null);
@@ -155,15 +158,18 @@ export default function App() {
     });
   };
 
-  // Load protocols list on mount
-  useEffect(() => {
-    loadProtocolsList();
+  // Load protocols list
+  const loadProtocolsList = useCallback(async () => {
+    const list = await getProtocolsList();
+    setProtocols(list);
   }, []);
 
-  const loadProtocolsList = () => {
-    const list = getProtocolsList();
-    setProtocols(list);
-  };
+  // Load protocols list on mount and when user changes
+  useEffect(() => {
+    if (benutzer) {
+      loadProtocolsList();
+    }
+  }, [benutzer, loadProtocolsList]);
 
   const handleNewProtocol = () => {
     setCurrentProtocol(null);
@@ -171,8 +177,8 @@ export default function App() {
     setActiveTab('editor');
   };
 
-  const handleEditProtocol = (id: string) => {
-    const protocol = loadProtocol(id);
+  const handleEditProtocol = async (id: string) => {
+    const protocol = await loadProtocol(id);
     if (protocol) {
       setCurrentProtocol(protocol);
       setIsNewProtocol(false);
@@ -190,10 +196,10 @@ export default function App() {
       isOpen: true,
       title: 'Protokoll löschen',
       message: `Möchten Sie das Protokoll "${protocol.chiffre} - ${protocol.protokollnummer}" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`,
-      onConfirm: () => {
+      onConfirm: async () => {
         try {
-          deleteProtocol(id);
-          loadProtocolsList();
+          await deleteProtocol(id);
+          await loadProtocolsList();
           showNotification('Protokoll wurde erfolgreich gelöscht.', 'success');
           setConfirmModal((prev) => ({ ...prev, isOpen: false }));
         } catch (error) {
@@ -203,8 +209,8 @@ export default function App() {
     });
   };
 
-  const handleSaveProtocol = () => {
-    loadProtocolsList();
+  const handleSaveProtocol = async () => {
+    await loadProtocolsList();
     setActiveTab('list');
     showNotification(
       isNewProtocol ? 'Protokoll wurde erfolgreich erstellt.' : 'Protokoll wurde erfolgreich gespeichert.',
@@ -218,8 +224,8 @@ export default function App() {
     setActiveTab('list');
   };
 
-  const handleExportPDF = (id: string) => {
-    const protocol = loadProtocol(id);
+  const handleExportPDF = async (id: string) => {
+    const protocol = await loadProtocol(id);
     if (protocol) {
       try {
         exportProtocolAsPDF(protocol);
@@ -229,6 +235,25 @@ export default function App() {
       }
     }
   };
+
+  const handleLogout = async () => {
+    await logout();
+    showNotification('Erfolgreich abgemeldet.', 'success');
+  };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-on-surface">Laden...</div>
+      </div>
+    );
+  }
+
+  // Show login form if not authenticated
+  if (!benutzer) {
+    return <LoginForm />;
+  }
 
   const tabs: Tab[] = [
     {
@@ -255,9 +280,22 @@ export default function App() {
                 Verwaltung von EMDR-Protokollen mit verschiedenen Protokolltypen
               </p>
             </div>
-            <div className="flex items-center gap-2 text-xs text-brand-secondary">
-              <CloudIcon />
-              <span>Auto-Speichern aktiv</span>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-xs text-brand-secondary">
+                <CloudIcon />
+                <span>Auto-Speichern aktiv</span>
+              </div>
+              <div className="flex items-center gap-3 border-l border-muted/30 pl-4">
+                <span className="text-sm text-on-surface">
+                  {benutzer.anzeigename || benutzer.benutzername}
+                </span>
+                <button
+                  onClick={handleLogout}
+                  className="text-sm text-muted hover:text-on-surface transition-colors"
+                >
+                  Abmelden
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -295,7 +333,7 @@ export default function App() {
       <footer className="bg-surface border-t border-muted/30 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <p className="text-center text-sm text-muted">
-            EMDR Protokoll-Plattform © {new Date().getFullYear()} | Daten werden lokal gespeichert
+            EMDR Protokoll-Plattform © {new Date().getFullYear()} | Daten werden sicher gespeichert
           </p>
         </div>
       </footer>
@@ -317,6 +355,15 @@ export default function App() {
         onCancel={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
       />
     </div>
+  );
+}
+
+// App wrapper with AuthProvider
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 
