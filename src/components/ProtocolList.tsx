@@ -74,6 +74,12 @@ export const ProtocolList: React.FC<ProtocolListProps> = ({
     };
   }, [showTestDataMenu]);
 
+  // Find the most recently created/modified protocol
+  const lastCreatedProtocol = useMemo(() => {
+    if (protocols.length === 0) return null;
+    return [...protocols].sort((a, b) => b.lastModified - a.lastModified)[0];
+  }, [protocols]);
+
   // Filter and search protocols
   const filteredProtocols = useMemo(() => {
     let filtered = protocols;
@@ -281,6 +287,57 @@ export const ProtocolList: React.FC<ProtocolListProps> = ({
           )}
         </div>
       </Card>
+
+      {/* Zuletzt erstelltes Protokoll */}
+      {lastCreatedProtocol && (
+        <Card className="border-2 border-brand-secondary/40 bg-gradient-to-br from-surface to-brand-secondary/5">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex-grow">
+              <div className="flex items-center gap-2 mb-2">
+                <svg className="w-5 h-5 text-brand-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 className="text-sm font-bold text-brand-secondary uppercase tracking-wide">
+                  Zuletzt erstelltes Protokoll
+                </h3>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-xl font-bold text-on-surface-strong">
+                  {lastCreatedProtocol.chiffre}
+                </span>
+                <span className="text-on-surface font-semibold">
+                  {lastCreatedProtocol.protokollnummer}
+                </span>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold bg-gradient-to-br ${PROTOCOL_TYPE_COLORS[lastCreatedProtocol.protocolType]} text-white`}>
+                  {lastCreatedProtocol.protocolType}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-4 text-sm text-muted mt-1">
+                <span>Datum: {formatDateGerman(lastCreatedProtocol.datum)}</span>
+                <span>Geändert: {formatTimestamp(lastCreatedProtocol.lastModified)}</span>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => onEdit(lastCreatedProtocol.id)}
+                className="flex items-center gap-1.5 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-sm font-semibold"
+                title="Bearbeiten"
+              >
+                <PencilIcon />
+                <span>Bearbeiten</span>
+              </button>
+              <button
+                onClick={() => onExportPDF(lastCreatedProtocol.id)}
+                className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-400 hover:to-purple-500 text-white rounded-lg transition-colors text-sm font-semibold shadow-lg"
+                title="PDF Export"
+              >
+                <PrinterIcon />
+                <span>PDF erstellen</span>
+              </button>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Protocols List - Grouped by Chiffre */}
       <div className="space-y-4">
