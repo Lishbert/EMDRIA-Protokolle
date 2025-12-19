@@ -34,9 +34,10 @@ interface IRIProtocolEditorProps {
   protocol: IRIProtocol | null;
   onSave: () => void;
   onCancel: () => void;
+  onRefresh?: () => void;
 }
 
-export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, onSave, onCancel }) => {
+export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, onSave, onCancel, onRefresh }) => {
   const [editedProtocol, setEditedProtocol] = useState<Partial<IRIProtocol>>({});
   const [errors, setErrors] = useState<{ [key: string]: boolean }>({});
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -152,6 +153,7 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
         protocol={ciposProtocol as CIPOSProtocol}
         onSave={onSave}
         onCancel={onCancel}
+        onRefresh={onRefresh}
       />
     );
   }
@@ -218,6 +220,7 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
         protocol={sichererOrtProtocol as SichererOrtProtocol}
         onSave={onSave}
         onCancel={onCancel}
+        onRefresh={onRefresh}
       />
     );
   }
@@ -240,6 +243,7 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
         protocol={standardProtocol as StandardProtocol}
         onSave={onSave}
         onCancel={onCancel}
+        onRefresh={onRefresh}
       />
     );
   }
@@ -342,6 +346,8 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
 
       await saveProtocol(protocolToSave);
       setSaveStatus('saved');
+      // Refresh the protocols list so "last created" is updated
+      if (onRefresh) onRefresh();
       // Stay in editor after saving so user can export PDF
     } catch (error) {
       console.error('Error saving protocol:', error);

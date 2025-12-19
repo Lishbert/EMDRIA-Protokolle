@@ -47,9 +47,10 @@ interface CIPOSProtocolEditorProps {
   protocol: CIPOSProtocol | null;
   onSave: () => void;
   onCancel: () => void;
+  onRefresh?: () => void;
 }
 
-export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protocol, onSave, onCancel }) => {
+export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protocol, onSave, onCancel, onRefresh }) => {
   const [editedProtocol, setEditedProtocol] = useState<Partial<CIPOSProtocol>>({});
   const [errors, setErrors] = useState<{ [key: string]: boolean }>({});
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -160,6 +161,7 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
         protocol={iriProtocol as IRIProtocol}
         onSave={onSave}
         onCancel={onCancel}
+        onRefresh={onRefresh}
       />
     );
   }
@@ -226,6 +228,7 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
         protocol={sichererOrtProtocol as SichererOrtProtocol}
         onSave={onSave}
         onCancel={onCancel}
+        onRefresh={onRefresh}
       />
     );
   }
@@ -248,6 +251,7 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
         protocol={standardProtocol as StandardProtocol}
         onSave={onSave}
         onCancel={onCancel}
+        onRefresh={onRefresh}
       />
     );
   }
@@ -445,6 +449,8 @@ export const CIPOSProtocolEditor: React.FC<CIPOSProtocolEditorProps> = ({ protoc
 
       await saveProtocol(protocolToSave);
       setSaveStatus('saved');
+      // Refresh the protocols list so "last created" is updated
+      if (onRefresh) onRefresh();
       // Stay in editor after saving so user can export PDF
     } catch (error) {
       console.error('Error saving protocol:', error);

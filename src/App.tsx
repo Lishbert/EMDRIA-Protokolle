@@ -218,6 +218,11 @@ function AppContent() {
     );
   };
 
+  // Refresh protocols list without changing tab (for auto-save scenarios)
+  const handleRefreshProtocols = async () => {
+    await loadProtocolsList();
+  };
+
   const handleCancelEdit = () => {
     setCurrentProtocol(null);
     setIsNewProtocol(false);
@@ -324,6 +329,7 @@ function AppContent() {
               protocol={currentProtocol}
               onSave={handleSaveProtocol}
               onCancel={handleCancelEdit}
+              onRefresh={handleRefreshProtocols}
             />
           )}
         </div>

@@ -34,9 +34,10 @@ interface SichererOrtProtocolEditorProps {
   protocol: SichererOrtProtocol | null;
   onSave: () => void;
   onCancel: () => void;
+  onRefresh?: () => void;
 }
 
-export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps> = ({ protocol, onSave, onCancel }) => {
+export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps> = ({ protocol, onSave, onCancel, onRefresh }) => {
   const [editedProtocol, setEditedProtocol] = useState<Partial<SichererOrtProtocol>>({});
   const [errors, setErrors] = useState<{ [key: string]: boolean }>({});
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -169,6 +170,7 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
         protocol={iriProtocol as IRIProtocol}
         onSave={onSave}
         onCancel={onCancel}
+        onRefresh={onRefresh}
       />
     );
   }
@@ -216,6 +218,7 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
         protocol={ciposProtocol as CIPOSProtocol}
         onSave={onSave}
         onCancel={onCancel}
+        onRefresh={onRefresh}
       />
     );
   }
@@ -237,6 +240,7 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
         protocol={standardProtocol as StandardProtocol}
         onSave={onSave}
         onCancel={onCancel}
+        onRefresh={onRefresh}
       />
     );
   }
@@ -310,6 +314,8 @@ export const SichererOrtProtocolEditor: React.FC<SichererOrtProtocolEditorProps>
 
       await saveProtocol(protocolToSave);
       setSaveStatus('saved');
+      // Refresh the protocols list so "last created" is updated
+      if (onRefresh) onRefresh();
       // Stay in editor after saving so user can export PDF
     } catch (error) {
       console.error('Error saving protocol:', error);

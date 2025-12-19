@@ -16,6 +16,7 @@ interface ProtocolEditorProps {
   protocol: Protocol | null;
   onSave: () => void;
   onCancel: () => void;
+  onRefresh?: () => void;
 }
 
 // Check if a protocol is IRI type
@@ -33,7 +34,7 @@ function checkIsSichererOrt(protocol: Protocol | Partial<Protocol> | null): bool
   return protocol?.protocolType === 'Sicherer Ort';
 }
 
-export const ProtocolEditor: React.FC<ProtocolEditorProps> = ({ protocol, onSave, onCancel }) => {
+export const ProtocolEditor: React.FC<ProtocolEditorProps> = ({ protocol, onSave, onCancel, onRefresh }) => {
   // If it's an IRI protocol, use the IRI editor
   if (protocol && checkIsIRI(protocol)) {
     return (
@@ -41,6 +42,7 @@ export const ProtocolEditor: React.FC<ProtocolEditorProps> = ({ protocol, onSave
         protocol={protocol as IRIProtocol}
         onSave={onSave}
         onCancel={onCancel}
+        onRefresh={onRefresh}
       />
     );
   }
@@ -52,6 +54,7 @@ export const ProtocolEditor: React.FC<ProtocolEditorProps> = ({ protocol, onSave
         protocol={protocol as CIPOSProtocol}
         onSave={onSave}
         onCancel={onCancel}
+        onRefresh={onRefresh}
       />
     );
   }
@@ -63,6 +66,7 @@ export const ProtocolEditor: React.FC<ProtocolEditorProps> = ({ protocol, onSave
         protocol={protocol as SichererOrtProtocol}
         onSave={onSave}
         onCancel={onCancel}
+        onRefresh={onRefresh}
       />
     );
   }
@@ -73,6 +77,7 @@ export const ProtocolEditor: React.FC<ProtocolEditorProps> = ({ protocol, onSave
       protocol={protocol as StandardProtocol | null}
       onSave={onSave}
       onCancel={onCancel}
+      onRefresh={onRefresh}
     />
   );
 };
@@ -82,9 +87,10 @@ interface StandardProtocolEditorProps {
   protocol: StandardProtocol | null;
   onSave: () => void;
   onCancel: () => void;
+  onRefresh?: () => void;
 }
 
-export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ protocol, onSave, onCancel }) => {
+export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ protocol, onSave, onCancel, onRefresh }) => {
   const [editedProtocol, setEditedProtocol] = useState<Partial<StandardProtocol>>({});
   const [errors, setErrors] = useState<{ [key: string]: boolean }>({});
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -374,6 +380,8 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
     if (editedProtocol.protocolType === 'IRI') {
       await saveProtocol(editedProtocol as unknown as Protocol);
       setSaveStatus('saved');
+      // Refresh the protocols list so "last created" is updated
+      if (onRefresh) onRefresh();
       // Stay in editor after saving so user can export PDF
       return;
     }
@@ -400,6 +408,8 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
 
       await saveProtocol(protocolToSave);
       setSaveStatus('saved');
+      // Refresh the protocols list so "last created" is updated
+      if (onRefresh) onRefresh();
       // Stay in editor after saving so user can export PDF
     } catch (error) {
       console.error('Error saving protocol:', error);
@@ -453,6 +463,7 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
         protocol={editedProtocol as unknown as IRIProtocol}
         onSave={onSave}
         onCancel={onCancel}
+        onRefresh={onRefresh}
       />
     );
   }
@@ -464,6 +475,7 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
         protocol={editedProtocol as unknown as CIPOSProtocol}
         onSave={onSave}
         onCancel={onCancel}
+        onRefresh={onRefresh}
       />
     );
   }
@@ -475,6 +487,7 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
         protocol={editedProtocol as unknown as SichererOrtProtocol}
         onSave={onSave}
         onCancel={onCancel}
+        onRefresh={onRefresh}
       />
     );
   }
