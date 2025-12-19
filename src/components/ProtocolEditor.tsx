@@ -275,6 +275,8 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
       ...editedProtocol,
       ...metadata,
     });
+    // Reset save status when editing
+    if (saveStatus === 'saved') setSaveStatus('idle');
   };
 
   const handleStartKnotenChange = (field: keyof StartKnoten, value: string | number) => {
@@ -285,6 +287,8 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
         [field]: value,
       } as StartKnoten,
     });
+    // Reset save status when editing
+    if (saveStatus === 'saved') setSaveStatus('idle');
   };
 
   const handleChannelChange = (channel: StandardProtocol['channel']) => {
@@ -292,6 +296,8 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
       ...editedProtocol,
       channel,
     });
+    // Reset save status when editing
+    if (saveStatus === 'saved') setSaveStatus('idle');
   };
 
   // Get human-readable list of missing fields
@@ -368,9 +374,7 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
     if (editedProtocol.protocolType === 'IRI') {
       await saveProtocol(editedProtocol as unknown as Protocol);
       setSaveStatus('saved');
-      setTimeout(() => {
-        onSave();
-      }, 500);
+      // Stay in editor after saving so user can export PDF
       return;
     }
 
@@ -396,10 +400,7 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
 
       await saveProtocol(protocolToSave);
       setSaveStatus('saved');
-
-      setTimeout(() => {
-        onSave();
-      }, 500);
+      // Stay in editor after saving so user can export PDF
     } catch (error) {
       console.error('Error saving protocol:', error);
       setSaveStatus('error');

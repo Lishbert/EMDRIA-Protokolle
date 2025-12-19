@@ -342,10 +342,7 @@ export const IRIProtocolEditor: React.FC<IRIProtocolEditorProps> = ({ protocol, 
 
       await saveProtocol(protocolToSave);
       setSaveStatus('saved');
-
-      setTimeout(() => {
-        onSave();
-      }, 500);
+      // Stay in editor after saving so user can export PDF
     } catch (error) {
       console.error('Error saving protocol:', error);
       setSaveStatus('error');
