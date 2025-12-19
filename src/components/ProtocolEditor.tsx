@@ -6,7 +6,7 @@ import { ChannelEditor } from './ChannelEditor';
 import { IRIProtocolEditor } from './IRIProtocolEditor';
 import { CIPOSProtocolEditor } from './CIPOSProtocolEditor';
 import { SichererOrtProtocolEditor } from './SichererOrtProtocolEditor';
-import type { Protocol, StandardProtocol, IRIProtocol, CIPOSProtocol, SichererOrtProtocol, ProtocolType, isIRIProtocol, isStandardProtocol, isCIPOSProtocol, isSichererOrtProtocol } from '../types';
+import type { Protocol, StandardProtocol, IRIProtocol, CIPOSProtocol, SichererOrtProtocol, ProtocolType, StartKnoten, isIRIProtocol, isStandardProtocol, isCIPOSProtocol, isSichererOrtProtocol } from '../types';
 import { saveProtocol } from '../utils/storage';
 import { exportProtocolAsPDF } from '../utils/export';
 import { DEFAULT_PROTOCOL_TYPE } from '../constants';
@@ -101,7 +101,15 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
         datum: new Date().toISOString().split('T')[0],
         protokollnummer: '',
         protocolType: DEFAULT_PROTOCOL_TYPE,
-        startKnoten: '',
+        startKnoten: {
+          bildSensorischeErinnerung: '',
+          negativeKognition: '',
+          positiveKognition: '',
+          voc: 1,
+          gefuehl: '',
+          sud: 0,
+          koerpersensation: '',
+        },
         channel: [],
         createdAt: Date.now(),
         lastModified: Date.now(),
@@ -269,10 +277,13 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
     });
   };
 
-  const handleStartKnotenChange = (value: string) => {
+  const handleStartKnotenChange = (field: keyof StartKnoten, value: string | number) => {
     setEditedProtocol({
       ...editedProtocol,
-      startKnoten: value,
+      startKnoten: {
+        ...editedProtocol.startKnoten,
+        [field]: value,
+      } as StartKnoten,
     });
   };
 
@@ -291,7 +302,14 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
     if (!editedProtocol.datum) missing.push('Datum');
     if (!editedProtocol.protokollnummer?.trim()) missing.push('Protokollnummer');
     if (!editedProtocol.protocolType) missing.push('Protokolltyp');
-    if (!editedProtocol.startKnoten?.trim()) missing.push('Startknoten');
+    
+    // Check StartKnoten fields
+    const sk = editedProtocol.startKnoten;
+    if (!sk?.bildSensorischeErinnerung?.trim()) missing.push('Bild / sensorische Erinnerung');
+    if (!sk?.negativeKognition?.trim()) missing.push('Negative Kognition');
+    if (!sk?.positiveKognition?.trim()) missing.push('Positive Kognition');
+    if (!sk?.gefuehl?.trim()) missing.push('Gefühl');
+    if (!sk?.koerpersensation?.trim()) missing.push('Körpersensation');
     
     if (!editedProtocol.channel || editedProtocol.channel.length === 0) {
       missing.push('Mindestens ein Stimulation-Fragment-Paar');
@@ -316,7 +334,15 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
     if (!editedProtocol.datum) newErrors.datum = true;
     if (!editedProtocol.protokollnummer?.trim()) newErrors.protokollnummer = true;
     if (!editedProtocol.protocolType) newErrors.protocolType = true;
-    if (!editedProtocol.startKnoten?.trim()) newErrors.startKnoten = true;
+    
+    // Validate StartKnoten fields
+    const sk = editedProtocol.startKnoten;
+    if (!sk?.bildSensorischeErinnerung?.trim()) newErrors.bildSensorischeErinnerung = true;
+    if (!sk?.negativeKognition?.trim()) newErrors.negativeKognition = true;
+    if (!sk?.positiveKognition?.trim()) newErrors.positiveKognition = true;
+    if (!sk?.gefuehl?.trim()) newErrors.gefuehl = true;
+    if (!sk?.koerpersensation?.trim()) newErrors.koerpersensation = true;
+    
     if (!editedProtocol.channel || editedProtocol.channel.length === 0) {
       newErrors.channel = true;
     } else {
@@ -362,7 +388,7 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
         datum: editedProtocol.datum!,
         protokollnummer: editedProtocol.protokollnummer!,
         protocolType: editedProtocol.protocolType as ProtocolType,
-        startKnoten: editedProtocol.startKnoten!,
+        startKnoten: editedProtocol.startKnoten as StartKnoten,
         channel: editedProtocol.channel!,
         createdAt: editedProtocol.createdAt || Date.now(),
         lastModified: Date.now(),
@@ -398,12 +424,23 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
     const numItems = Math.floor(Math.random() * 4) + 3;
     const channel = Array.from({ length: numItems }, () => getRandomChannelItem());
     
+    // Generate structured StartKnoten test data
+    const startKnoten: StartKnoten = {
+      bildSensorischeErinnerung: getRandomStartKnoten(),
+      negativeKognition: ['Ich bin nicht sicher', 'Ich bin wertlos', 'Ich bin machtlos', 'Ich bin schuld', 'Ich bin nicht gut genug'][Math.floor(Math.random() * 5)],
+      positiveKognition: ['Ich bin sicher', 'Ich bin wertvoll', 'Ich habe Kontrolle', 'Ich habe mein Bestes getan', 'Ich bin gut genug'][Math.floor(Math.random() * 5)],
+      voc: Math.floor(Math.random() * 4) + 1, // 1-4 (initially low)
+      gefuehl: ['Angst', 'Trauer', 'Scham', 'Hilflosigkeit', 'Wut', 'Schuld', 'Ohnmacht'][Math.floor(Math.random() * 7)],
+      sud: Math.floor(Math.random() * 5) + 5, // 5-9 (initially high)
+      koerpersensation: ['Enge in der Brust', 'Druck im Magen', 'Spannung im Nacken', 'Kloß im Hals', 'Schwere in den Beinen', 'Zittern in den Händen', 'Herzrasen'][Math.floor(Math.random() * 7)],
+    };
+    
     setEditedProtocol({
       ...editedProtocol,
       chiffre: getRandomChiffre(),
       datum: getRandomDate(),
       protokollnummer: getRandomProtocolNumber(),
-      startKnoten: getRandomStartKnoten(),
+      startKnoten,
       channel,
     });
   };
@@ -454,21 +491,149 @@ export const StandardProtocolEditor: React.FC<StandardProtocolEditorProps> = ({ 
       {/* Startknoten Section */}
       <Card className="mb-6">
         <h2 className="text-lg font-bold text-on-surface-strong mb-4">Startknoten</h2>
-        <div>
-          <label className="block text-sm font-medium text-on-surface mb-2">
-            Beschreibung des Startknotens *
-          </label>
-          <textarea
-            value={editedProtocol.startKnoten || ''}
-            onChange={(e) => handleStartKnotenChange(e.target.value)}
-            className={`w-full bg-background text-on-surface border ${
-              errors.startKnoten ? 'border-red-500' : 'border-muted'
-            } rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none resize-y min-h-[100px]`}
-            placeholder="Beschreibung des Ausgangspunkts/Startknotens..."
-          />
-          {errors.startKnoten && (
-            <p className="text-red-500 text-xs mt-1">Startknoten ist erforderlich</p>
-          )}
+        <div className="space-y-4">
+          {/* Bild / sensorische Erinnerung */}
+          <div>
+            <label className="block text-sm font-medium text-on-surface mb-2">
+              Bild / sensorische Erinnerung *
+            </label>
+            <textarea
+              value={editedProtocol.startKnoten?.bildSensorischeErinnerung || ''}
+              onChange={(e) => handleStartKnotenChange('bildSensorischeErinnerung', e.target.value)}
+              className={`w-full bg-background text-on-surface border ${
+                errors.bildSensorischeErinnerung ? 'border-red-500' : 'border-muted'
+              } rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none resize-y min-h-[80px]`}
+              placeholder="Welches Bild oder welche sensorische Erinnerung taucht auf?"
+            />
+            {errors.bildSensorischeErinnerung && (
+              <p className="text-red-500 text-xs mt-1">Bild / sensorische Erinnerung ist erforderlich</p>
+            )}
+          </div>
+
+          {/* Negative Kognition */}
+          <div>
+            <label className="block text-sm font-medium text-on-surface mb-2">
+              Negative Kognition *
+            </label>
+            <input
+              type="text"
+              value={editedProtocol.startKnoten?.negativeKognition || ''}
+              onChange={(e) => handleStartKnotenChange('negativeKognition', e.target.value)}
+              className={`w-full bg-background text-on-surface border ${
+                errors.negativeKognition ? 'border-red-500' : 'border-muted'
+              } rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none`}
+              placeholder="z.B. 'Ich bin nicht sicher' oder 'Ich bin wertlos'"
+            />
+            {errors.negativeKognition && (
+              <p className="text-red-500 text-xs mt-1">Negative Kognition ist erforderlich</p>
+            )}
+          </div>
+
+          {/* Positive Kognition */}
+          <div>
+            <label className="block text-sm font-medium text-on-surface mb-2">
+              Positive Kognition *
+            </label>
+            <input
+              type="text"
+              value={editedProtocol.startKnoten?.positiveKognition || ''}
+              onChange={(e) => handleStartKnotenChange('positiveKognition', e.target.value)}
+              className={`w-full bg-background text-on-surface border ${
+                errors.positiveKognition ? 'border-red-500' : 'border-muted'
+              } rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none`}
+              placeholder="z.B. 'Ich bin sicher' oder 'Ich bin wertvoll'"
+            />
+            {errors.positiveKognition && (
+              <p className="text-red-500 text-xs mt-1">Positive Kognition ist erforderlich</p>
+            )}
+          </div>
+
+          {/* VoC (1-7) */}
+          <div>
+            <label className="block text-sm font-medium text-on-surface mb-2">
+              VoC (Validity of Cognition)
+              <span className="text-xs text-on-surface/60 ml-2">
+                1 = überhaupt nicht zutreffend, 7 = vollständig zutreffend
+              </span>
+            </label>
+            <select
+              value={editedProtocol.startKnoten?.voc ?? 1}
+              onChange={(e) => handleStartKnotenChange('voc', parseInt(e.target.value))}
+              className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
+            >
+              <option value={1}>1 - Überhaupt nicht zutreffend</option>
+              <option value={2}>2</option>
+              <option value={3}>3</option>
+              <option value={4}>4</option>
+              <option value={5}>5</option>
+              <option value={6}>6</option>
+              <option value={7}>7 - Vollständig zutreffend</option>
+            </select>
+          </div>
+
+          {/* Gefühl */}
+          <div>
+            <label className="block text-sm font-medium text-on-surface mb-2">
+              Gefühl *
+            </label>
+            <input
+              type="text"
+              value={editedProtocol.startKnoten?.gefuehl || ''}
+              onChange={(e) => handleStartKnotenChange('gefuehl', e.target.value)}
+              className={`w-full bg-background text-on-surface border ${
+                errors.gefuehl ? 'border-red-500' : 'border-muted'
+              } rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none`}
+              placeholder="z.B. Angst, Trauer, Scham, Hilflosigkeit..."
+            />
+            {errors.gefuehl && (
+              <p className="text-red-500 text-xs mt-1">Gefühl ist erforderlich</p>
+            )}
+          </div>
+
+          {/* SUD (0-10) */}
+          <div>
+            <label className="block text-sm font-medium text-on-surface mb-2">
+              SUD (Subjective Units of Disturbance)
+              <span className="text-xs text-on-surface/60 ml-2">
+                0 = neutral, 10 = maximal vorstellbare Belastung
+              </span>
+            </label>
+            <select
+              value={editedProtocol.startKnoten?.sud ?? 0}
+              onChange={(e) => handleStartKnotenChange('sud', parseInt(e.target.value))}
+              className="w-full bg-background text-on-surface border border-muted rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
+            >
+              <option value={0}>0 - Neutral / keine Belastung</option>
+              <option value={1}>1</option>
+              <option value={2}>2</option>
+              <option value={3}>3</option>
+              <option value={4}>4</option>
+              <option value={5}>5 - Mittlere Belastung</option>
+              <option value={6}>6</option>
+              <option value={7}>7</option>
+              <option value={8}>8</option>
+              <option value={9}>9</option>
+              <option value={10}>10 - Maximale Belastung</option>
+            </select>
+          </div>
+
+          {/* Körpersensation */}
+          <div>
+            <label className="block text-sm font-medium text-on-surface mb-2">
+              Körpersensation *
+            </label>
+            <textarea
+              value={editedProtocol.startKnoten?.koerpersensation || ''}
+              onChange={(e) => handleStartKnotenChange('koerpersensation', e.target.value)}
+              className={`w-full bg-background text-on-surface border ${
+                errors.koerpersensation ? 'border-red-500' : 'border-muted'
+              } rounded-md px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none resize-y min-h-[60px]`}
+              placeholder="Wo im Körper spüren Sie die Belastung? Wie fühlt es sich an?"
+            />
+            {errors.koerpersensation && (
+              <p className="text-red-500 text-xs mt-1">Körpersensation ist erforderlich</p>
+            )}
+          </div>
         </div>
       </Card>
 

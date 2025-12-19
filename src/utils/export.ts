@@ -126,11 +126,47 @@ const exportStandardProtocolAsPDF = (protocol: StandardProtocol): void => {
     pdf.text('Startknoten', margin, yPos);
     yPos += 7;
 
+    const sk = protocol.startKnoten;
+    
+    // Bild / sensorische Erinnerung
     pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Bild / sensorische Erinnerung:', margin, yPos);
+    yPos += 5;
     pdf.setFont('helvetica', 'normal');
-    const startKnotenLines = pdf.splitTextToSize(protocol.startKnoten || '-', contentWidth);
-    pdf.text(startKnotenLines, margin, yPos);
-    yPos += startKnotenLines.length * 5 + 10;
+    const bildLines = pdf.splitTextToSize(sk?.bildSensorischeErinnerung || '-', contentWidth - 3);
+    pdf.text(bildLines, margin + 3, yPos);
+    yPos += bildLines.length * 4 + 3;
+
+    // Negative Kognition
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Negative Kognition:', margin, yPos);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(sk?.negativeKognition || '-', margin + 50, yPos);
+    yPos += 6;
+
+    // Positive Kognition + VoC
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Positive Kognition:', margin, yPos);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(`${sk?.positiveKognition || '-'}  (VoC: ${sk?.voc ?? '-'}/7)`, margin + 50, yPos);
+    yPos += 6;
+
+    // Gefühl + SUD
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Gefühl:', margin, yPos);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(`${sk?.gefuehl || '-'}  (SUD: ${sk?.sud ?? '-'}/10)`, margin + 50, yPos);
+    yPos += 6;
+
+    // Körpersensation
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Körpersensation:', margin, yPos);
+    yPos += 5;
+    pdf.setFont('helvetica', 'normal');
+    const koerperLines = pdf.splitTextToSize(sk?.koerpersensation || '-', contentWidth - 3);
+    pdf.text(koerperLines, margin + 3, yPos);
+    yPos += koerperLines.length * 4 + 10;
 
     // Channel section
     pdf.setFontSize(14);

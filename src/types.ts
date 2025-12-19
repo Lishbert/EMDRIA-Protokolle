@@ -34,9 +34,20 @@ export interface ChannelItem {
   fragment: Fragment;
 }
 
+// Startknoten structure for EMDR Reprozessieren protocol
+export interface StartKnoten {
+  bildSensorischeErinnerung: string;  // Bild / sensorische Erinnerung
+  negativeKognition: string;          // Negative Kognition
+  positiveKognition: string;          // Positive Kognition
+  voc: number;                        // VoC (1-7): 1=überhaupt nicht zutreffend, 7=vollständig zutreffend
+  gefuehl: string;                    // Gefühl
+  sud: number;                        // SUD (0-10): 0=neutral, 10=maximale Belastung
+  koerpersensation: string;           // Körpersensation
+}
+
 export interface StandardProtocol extends ProtocolMetadata {
-  startKnoten: string;  // Starting node description
-  channel: ChannelItem[];  // Array of stimulation-fragment pairs
+  startKnoten: StartKnoten;  // Structured starting node
+  channel: ChannelItem[];    // Array of stimulation-fragment pairs
 }
 
 // =============================================================

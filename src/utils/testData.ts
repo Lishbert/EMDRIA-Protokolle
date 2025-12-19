@@ -8,6 +8,7 @@ import type {
   ChannelItem, 
   Fragment, 
   Stimulation,
+  StartKnoten,
   IndikationOption,
   KoerperlokalisationOption,
   KoerperempfindungQualitaet,
@@ -26,16 +27,67 @@ import { saveProtocol } from './storage';
 // Sample data for generating realistic test protocols - exported for individual field generation
 export const SAMPLE_CHIFFRES = ['P-001', 'P-002', 'P-003', 'K-101', 'K-102', 'M-201', 'M-202', 'T-301'];
 
-export const SAMPLE_START_KNOTEN = [
-  'Patient berichtet von belastender Erinnerung aus der Kindheit',
-  'Aktueller Auslöser: Konflikt am Arbeitsplatz',
-  'Traumatisches Ereignis: Autounfall vor 2 Jahren',
-  'Beziehungskonflikt mit Partner',
-  'Verlusterfahrung: Tod eines nahestehenden Menschen',
-  'Angst vor öffentlichen Auftritten',
-  'Selbstwertproblematik seit der Schulzeit',
-  'Chronische Überforderung und Erschöpfung',
+export const SAMPLE_BILD_SENSORISCH = [
+  'Bild: Dunkler Raum, Gefühl der Enge, höre laute Stimmen',
+  'Sehe das Auto auf mich zukommen, spüre den Aufprall, rieche Benzin',
+  'Gesicht des Vaters, seine zornige Stimme, Gefühl der Hilflosigkeit',
+  'Klassenzimmer, alle lachen, Gefühl der Scham und Einsamkeit',
+  'Krankenhausflur, grelles Licht, piepende Geräte, Angst',
+  'Leerer Raum, Stille, Gefühl des Verlassenseins',
+  'Menschenmenge, Gesichter starren, Herz rast, Fluchtimpuls',
+  'Büro, Stapel Arbeit, Chef steht vor mir, Gefühl der Überforderung',
 ];
+
+export const SAMPLE_NEGATIVE_KOGNITIONEN = [
+  'Ich bin nicht sicher',
+  'Ich bin wertlos',
+  'Ich bin machtlos',
+  'Ich bin schuld',
+  'Ich bin nicht gut genug',
+  'Ich verdiene es nicht',
+  'Ich bin hilflos',
+  'Ich habe keine Kontrolle',
+];
+
+export const SAMPLE_POSITIVE_KOGNITIONEN = [
+  'Ich bin sicher',
+  'Ich bin wertvoll',
+  'Ich habe Kontrolle',
+  'Ich habe mein Bestes getan',
+  'Ich bin gut genug',
+  'Ich verdiene Gutes',
+  'Ich kann für mich sorgen',
+  'Ich bin stark',
+];
+
+export const SAMPLE_GEFUEHLE = [
+  'Angst',
+  'Trauer',
+  'Scham',
+  'Hilflosigkeit',
+  'Wut',
+  'Schuld',
+  'Ohnmacht',
+  'Verzweiflung',
+  'Einsamkeit',
+  'Ekel',
+];
+
+export const SAMPLE_KOERPERSENSATIONEN = [
+  'Enge in der Brust',
+  'Druck im Magen',
+  'Spannung im Nacken und Schultern',
+  'Kloß im Hals',
+  'Schwere in den Beinen',
+  'Zittern in den Händen',
+  'Herzrasen',
+  'Flache Atmung',
+  'Taubheitsgefühl',
+  'Kribbeln in den Armen',
+];
+
+// Legacy sample for backward compatibility
+export const SAMPLE_START_KNOTEN = SAMPLE_BILD_SENSORISCH;
 
 export const SAMPLE_FRAGMENTS = [
   'Bild wird heller, weniger bedrohlich',
@@ -326,10 +378,23 @@ export const getRandomItems = <T>(array: T[], min: number = 1, max: number = 3):
 };
 
 export const getRandomChiffre = (): string => getRandomItem(SAMPLE_CHIFFRES);
-export const getRandomStartKnoten = (): string => getRandomItem(SAMPLE_START_KNOTEN);
+export const getRandomStartKnoten = (): string => getRandomItem(SAMPLE_BILD_SENSORISCH);
 export const getRandomFragmentText = (): string => getRandomItem(SAMPLE_FRAGMENTS);
 export const getRandomNotiz = (): string => getRandomItem(SAMPLE_NOTIZEN);
 export const getRandomEinwebung = (): string => getRandomItem(SAMPLE_EINWEBUNGEN);
+
+// Generate structured StartKnoten data
+export const getRandomStartKnotenStructured = (): StartKnoten => {
+  return {
+    bildSensorischeErinnerung: getRandomItem(SAMPLE_BILD_SENSORISCH),
+    negativeKognition: getRandomItem(SAMPLE_NEGATIVE_KOGNITIONEN),
+    positiveKognition: getRandomItem(SAMPLE_POSITIVE_KOGNITIONEN),
+    voc: Math.floor(Math.random() * 4) + 1, // 1-4 (initially low)
+    gefuehl: getRandomItem(SAMPLE_GEFUEHLE),
+    sud: Math.floor(Math.random() * 5) + 5, // 5-9 (initially high)
+    koerpersensation: getRandomItem(SAMPLE_KOERPERSENSATIONEN),
+  };
+};
 
 // Generate a random date within the last 6 months
 export const getRandomDate = (): string => {
@@ -474,7 +539,7 @@ export const generateTestProtocol = (
     datum: date,
     protokollnummer: getRandomProtocolNumber(),
     protocolType: type,
-    startKnoten: SAMPLE_START_KNOTEN[Math.floor(Math.random() * SAMPLE_START_KNOTEN.length)],
+    startKnoten: getRandomStartKnotenStructured(),
     channel,
     createdAt: now,
     lastModified: now,
