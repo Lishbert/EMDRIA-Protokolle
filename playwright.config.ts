@@ -13,7 +13,7 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     launchOptions: {
-      slowMo: 1000, // 1 Sekunde Verzögerung zwischen Aktionen
+      slowMo: 200, // 200ms Verzögerung zwischen Aktionen
     },
   },
 
